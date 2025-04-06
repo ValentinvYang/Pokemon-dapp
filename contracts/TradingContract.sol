@@ -2,9 +2,10 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract TradingContract is ReentrancyGuard {
+contract TradingContract is ReentrancyGuard, IERC721Receiver {
   struct Listing {
     address seller;
     uint256 pokemonId;
@@ -31,9 +32,27 @@ contract TradingContract is ReentrancyGuard {
   );
   event Withdrawn(address indexed user, uint256 amount);
   event ListingRemoved(uint256 indexed pokemonId);
+  event TokenReceived(address operator, address from, uint256 tokenId);
 
   constructor(address _pokemonContract) {
     pokemonContract = IERC721(_pokemonContract); // Address of the deployed Pokémon NFT contract
+  }
+
+  //Allow the contract to receive a Pokemon
+  function onERC721Received(
+    address operator,
+    address from,
+    uint256 tokenId,
+    bytes calldata data
+  ) external override returns (bytes4) {
+    //Ensure only PokemonContract can send tokens:
+    require(
+      msg.sender == address(pokemonContract),
+      "Only PokemonContract tokens accepted"
+    );
+    emit TokenReceived(operator, from, tokenId);
+
+    return IERC721Receiver.onERC721Received.selector;
   }
 
   //Modifier to check if sender is owner of the Pokemon
@@ -172,7 +191,7 @@ contract TradingContract is ReentrancyGuard {
     }
 
     //Return Pokemon to the seller
-    pokemonContract.transferFrom(address(this), listing.seller, pokemonId);
+    pokemonContract.safeTransferFrom(address(this), listing.seller, pokemonId);
 
     emit ListingRemoved(pokemonId);
 

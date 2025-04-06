@@ -12,12 +12,14 @@ contract PokemonContract is ERC721, Ownable {
   struct Pokemon {
     string name;
     string pokeType;
+    uint256 price; //Price in wei
   }
 
   uint256 private _nextTokenId;
   mapping(uint256 => Pokemon) public pokemons;
 
   event PokemonMinted(uint256 indexed tokenId, string name, string pokeType);
+  event PokemonSold(uint256 indexed tokenId, address buyer, uint256 price);
 
   constructor(
     string memory _name,
@@ -32,10 +34,11 @@ contract PokemonContract is ERC721, Ownable {
 
   function mintPokemon(
     string memory name,
-    string memory pokeType
+    string memory pokeType,
+    uint256 price
   ) external onlyOwner {
     uint256 tokenId = _nextTokenId;
-    pokemons[tokenId] = Pokemon(name, pokeType);
+    pokemons[tokenId] = Pokemon(name, pokeType, price);
     _safeMint(msg.sender, _nextTokenId);
 
     emit PokemonMinted(tokenId, name, pokeType);
@@ -59,6 +62,18 @@ contract PokemonContract is ERC721, Ownable {
   function getTokenBalance(address owner) public view returns (uint256) {
     return balanceOf(owner);
   }
+
+  // function buyPokemon(uint256 tokenId) external payable {
+  //   Pokemon memory pokemon = pokemons[tokenId];
+  //   require(
+  //     ownerOf(tokenId) == address(this),
+  //     "Cannot buy Pokemon that doesn't belong to the Contract"
+  //   );
+  //   require(msg.value >= pokemon.price, "Insufficient funds");
+
+  //   //Transfer Pokemon to the buyer
+  //   _safeTransfer(address(this), msg.sender, tokenId);
+  // }
 
   //Solidity guide:
   ///////////////////////////////////////////////////

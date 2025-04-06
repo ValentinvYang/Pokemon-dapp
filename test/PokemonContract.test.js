@@ -2,7 +2,6 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
 describe("PokemonContract", function () {
-  let PokemonContract;
   let pokemonContract;
   let owner;
   let addr1;
@@ -12,9 +11,11 @@ describe("PokemonContract", function () {
     // Get signers
     [owner, addr1, addr2] = await ethers.getSigners();
 
-    // Deploy contract
-    PokemonContract = await ethers.getContractFactory("PokemonContract");
-    pokemonContract = await PokemonContract.deploy("PokemonContract", "PKM");
+    //Deploy contract:
+    pokemonContract = await ethers.deployContract("PokemonContract", [
+      "PokemonContract",
+      "PKM",
+    ]);
     await pokemonContract.waitForDeployment();
   });
 
@@ -35,9 +36,11 @@ describe("PokemonContract", function () {
       const name = "Charizard";
       const pokemonType = "Fire";
       const level = 50;
+      const price = 1;
 
-      //Only owner can mint... In the generated test-case they try to mint from addr1.address
-      await pokemonContract.mintPokemon(name, pokemonType);
+      await pokemonContract
+        .connect(owner)
+        .mintPokemon(name, pokemonType, price);
 
       const tokenId = 0;
       expect(await pokemonContract.ownerOf(tokenId)).to.equal(owner.address);
@@ -45,6 +48,7 @@ describe("PokemonContract", function () {
       const stats = await pokemonContract.getPokemon(tokenId);
       expect(stats.name).to.equal(name);
       expect(stats.pokeType).to.equal(pokemonType);
+      expect(stats.price).to.equal(price);
     });
 
     it("Should fail when non-owner tries to mint", async function () {
@@ -52,9 +56,10 @@ describe("PokemonContract", function () {
       const name = "Charizard";
       const pokemonType = "Fire";
       const level = 50;
+      const price = 1;
 
       await expect(
-        pokemonContract.connect(addr1).mintPokemon(name, pokemonType)
+        pokemonContract.connect(addr1).mintPokemon(name, pokemonType, price)
       ).to.be.reverted;
     });
   });
@@ -65,8 +70,9 @@ describe("PokemonContract", function () {
       const name = "Charizard";
       const pokemonType = "Fire";
       const level = 50;
+      const price = 1;
 
-      await pokemonContract.mintPokemon(name, pokemonType);
+      await pokemonContract.mintPokemon(name, pokemonType, price);
 
       const stats = await pokemonContract.getPokemon(0);
       expect(stats.name).to.equal(name);
