@@ -43,7 +43,7 @@ describe("PokemonContract", function () {
         .mintPokemon(name, pokemonType, price);
 
       const tokenId = 0;
-      expect(await pokemonContract.ownerOf(tokenId)).to.equal(owner.address);
+      expect(await pokemonContract.ownerOf(tokenId)).to.equal(owner);
 
       const stats = await pokemonContract.getPokemon(tokenId);
       expect(stats.name).to.equal(name);

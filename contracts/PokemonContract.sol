@@ -7,6 +7,7 @@ import "hardhat/console.sol";
 //Import OpenZeppelin library:
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract PokemonContract is ERC721, Ownable {
   struct Pokemon {
@@ -28,6 +29,16 @@ contract PokemonContract is ERC721, Ownable {
     _nextTokenId = 0;
   }
 
+  // //Allow the contract to receive a Pokemon
+  // function onERC721Received(
+  //   address operator,
+  //   address from,
+  //   uint256 tokenId,
+  //   bytes calldata data
+  // ) external override returns (bytes4) {
+  //   return IERC721Receiver.onERC721Received.selector;
+  // }
+
   function increment() private {
     _nextTokenId++;
   }
@@ -39,7 +50,7 @@ contract PokemonContract is ERC721, Ownable {
   ) external onlyOwner {
     uint256 tokenId = _nextTokenId;
     pokemons[tokenId] = Pokemon(name, pokeType, price);
-    _safeMint(msg.sender, _nextTokenId);
+    _safeMint(msg.sender, _nextTokenId); //Mint to contract
 
     emit PokemonMinted(tokenId, name, pokeType);
     increment();
