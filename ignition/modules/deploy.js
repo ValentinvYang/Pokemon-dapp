@@ -1,15 +1,11 @@
-const hre = require("hardhat");
+const { buildModule } = require("@nomicfoundation/hardhat-ignition/modules");
 
-async function main() {
-  // Deploy the contract
-  const PokemonTrading = await hre.ethers.getContractFactory("PokemonTrading");
-  const pokemonTrading = await PokemonTrading.deploy("PokemonTrading", "PKM");
-  await pokemonTrading.waitForDeployment();
+module.exports = buildModule("PokemonContractModule", (m) => {
+  // Deploy the PokemonContract
+  const pokemonContract = m.contract("PokemonContract", [
+    "PokemonContract",
+    "PKM",
+  ]);
 
-  console.log("PokemonTrading deployed to:", await pokemonTrading.getAddress());
-}
-
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
+  return { pokemonContract };
 });

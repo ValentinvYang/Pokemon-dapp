@@ -2,11 +2,19 @@ const hre = require("hardhat");
 
 async function main() {
   // Deploy the contract
-  const PokemonTrading = await hre.ethers.getContractFactory("PokemonTrading");
-  const pokemonTrading = await PokemonTrading.deploy("PokemonTrading", "PKM");
-  await pokemonTrading.waitForDeployment();
+  const PokemonContract = await hre.ethers.getContractFactory(
+    "PokemonContract"
+  );
+  const pokemonContract = await PokemonContract.deploy(
+    "PokemonContract",
+    "PKM"
+  );
+  await pokemonContract.waitForDeployment();
 
-  console.log("PokemonTrading deployed to:", await pokemonTrading.getAddress());
+  console.log(
+    "PokemonContract deployed to:",
+    await pokemonContract.getAddress()
+  );
 }
 
 main().catch((error) => {

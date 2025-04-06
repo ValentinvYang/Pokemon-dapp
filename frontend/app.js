@@ -4,7 +4,6 @@ let userAddress;
 let contract;
 
 // Replace this with your contract's ABI and address
-const contractAddress = "YOUR_CONTRACT_ADDRESS";
 const contractABI = [
   // ABI of the contract you want to interact with
   {
@@ -24,32 +23,27 @@ const contractABI = [
   // Add other contract functions here as needed
 ];
 
-async function connectMetaMask() {
-  if (typeof window.ethereum !== "undefined") {
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    signer = provider.getSigner();
+const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
-    try {
-      // Request user accounts
-      await window.ethereum.request({ method: "eth_requestAccounts" });
-      userAddress = await signer.getAddress();
-      console.log("Connected account:", userAddress);
-      document.getElementById("account").innerText =
-        "Connected: " + userAddress;
+//Account #19 key from Hardhat node
+let testAddress = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199";
 
-      // Create contract instance
-      contract = new ethers.Contract(contractAddress, contractABI, signer);
+try {
+  // Request user accounts
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+  userAddress = await signer.getAddress();
+  console.log("Connected account:", userAddress);
+  document.getElementById("account").innerText = "Connected: " + userAddress;
 
-      // Now you can interact with the contract
-      // For example: call a function to get the contract owner
-      const owner = await contract.getOwner();
-      console.log("Contract owner:", owner);
-    } catch (err) {
-      console.error("Error connecting to MetaMask:", err);
-    }
-  } else {
-    alert("MetaMask is not installed");
-  }
+  // Create contract instance
+  contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+  // Now you can interact with the contract
+  // For example: call a function to get the contract owner
+  const owner = await contract.getOwner();
+  console.log("Contract owner:", owner);
+} catch (err) {
+  console.error("Error connecting to MetaMask:", err);
 }
 
 // Connect to MetaMask when the button is clicked
