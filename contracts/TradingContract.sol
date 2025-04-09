@@ -17,6 +17,9 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   }
 
   mapping(uint256 => Listing) public listings;
+
+  //Pull payment pattern for auction bids to prevent Reentrancy and Dos attacks
+  mapping(address => uint256) public pendingRefunds;
   mapping(uint256 => uint256) public auctionRewards;
   IERC721 public pokemonContract;
   uint256 public constant FINALIZER_FEE = 0.0001 ether;
@@ -62,6 +65,15 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   modifier onlyPokemonOwner(uint256 pokemonId) {
     require(
       pokemonContract.ownerOf(pokemonId) == msg.sender,
+      "You must own the Pokemon to list it"
+    );
+    _; //Indicate beginning of function
+  }
+
+  //Modifier to check if sender is owner of the listing
+  modifier onlyListingSeller(uint256 pokemonId) {
+    require(
+      listings[pokemonId].seller == msg.sender,
       "You must own the Pokemon to list it"
     );
     _; //Indicate beginning of function
@@ -135,6 +147,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
 
     //Remove listing
     delete listings[pokemonId];
+    emit ListingRemoved(pokemonId);
   }
 
   //Function to place a bid on a Pokemon listed for auction
@@ -151,7 +164,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
 
     //Refund the previous highest bidder
     if (listing.highestBidder != address(0)) {
-      payable(listing.highestBidder).transfer(listing.highestBid);
+      pendingRefunds[listing.highestBidder] += listing.highestBid;
     }
 
     //Update the highest bidder and bid amount
@@ -197,11 +210,13 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     //Clean up listing after auction is finished
     delete listings[pokemonId];
     delete auctionRewards[pokemonId];
+
+    emit ListingRemoved(pokemonId);
   }
 
   function removeListing(
     uint256 pokemonId
-  ) external onlyPokemonOwner(pokemonId) nonReentrant {
+  ) external onlyListingSeller(pokemonId) nonReentrant {
     Listing storage listing = listings[pokemonId];
     require(listing.seller != address(0), "Listing does not exist");
 
@@ -216,5 +231,15 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     emit ListingRemoved(pokemonId);
 
     delete listings[pokemonId];
+  }
+
+  function withdrawRefund() external nonReentrant {
+    uint256 amount = pendingRefunds[msg.sender];
+    require(amount > 0, "No refund available");
+
+    pendingRefunds[msg.sender] = 0; //Prevent reentrancy
+    payable(msg.sender).transfer(amount);
+
+    emit Withdrawn(msg.sender, amount);
   }
 }

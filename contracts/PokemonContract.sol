@@ -20,7 +20,6 @@ contract PokemonContract is ERC721, Ownable {
   mapping(uint256 => Pokemon) public pokemons;
 
   event PokemonMinted(uint256 indexed tokenId, string name, string pokeType);
-  event PokemonSold(uint256 indexed tokenId, address buyer, uint256 price);
 
   constructor(
     string memory _name,
@@ -28,16 +27,6 @@ contract PokemonContract is ERC721, Ownable {
   ) ERC721(_name, _symbol) Ownable(msg.sender) {
     _nextTokenId = 0;
   }
-
-  // //Allow the contract to receive a Pokemon
-  // function onERC721Received(
-  //   address operator,
-  //   address from,
-  //   uint256 tokenId,
-  //   bytes calldata data
-  // ) external override returns (bytes4) {
-  //   return IERC721Receiver.onERC721Received.selector;
-  // }
 
   function increment() private {
     _nextTokenId++;
