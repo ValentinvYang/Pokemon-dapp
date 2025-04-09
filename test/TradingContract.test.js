@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const hre = require("hardhat");
 const { ethers } = hre;
+const { ZeroAddress } = require("ethers");
 
 describe("TradingContract", function () {
   let pokemonContract;
@@ -8,9 +9,11 @@ describe("TradingContract", function () {
   let owner;
   let addr1;
   let addr2;
+  let addr3;
+  let addr4;
 
   beforeEach(async function () {
-    [owner, addr1, addr2] = await ethers.getSigners();
+    [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
 
     pokemonContract = await ethers.deployContract("PokemonContract", [
       "PokemonContract",
@@ -23,7 +26,7 @@ describe("TradingContract", function () {
     ]);
     await tradingContract.waitForDeployment();
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 10; i++) {
       await pokemonContract
         .connect(owner)
         .mintPokemon(
@@ -94,9 +97,11 @@ describe("TradingContract", function () {
   });
 
   describe("Auction Functionality", function () {
-    it("Should allow to list a Pokémon for auction", async function () {
+    const FINALIZER_FEE = ethers.parseEther("0.0001");
+
+    it("Should allow to list a Pokémon for auction and then allow bidding on that Pokemon", async function () {
       /*
-      Testcase: addr1 buys a Pokemon and then should be able to list it in an auction.
+      Part 1: addr1 buys a Pokemon and then should be able to list it in an auction.
       */
       const pokemonId = 0;
       const auctionDuration = 60 * 60;
@@ -112,103 +117,214 @@ describe("TradingContract", function () {
         .connect(addr1)
         .approve(tradingContract.target, pokemonId);
 
+      await expect(
+        tradingContract
+          .connect(addr1)
+          .listPokemon(
+            pokemonId,
+            ethers.parseEther("0.5"),
+            true,
+            auctionDuration,
+            { value: FINALIZER_FEE }
+          )
+      )
+        .to.emit(tradingContract, "Listed")
+        .withArgs(pokemonId, ethers.parseEther("0.5"), true);
+
+      let listing = await tradingContract.listings(pokemonId);
+      expect(listing.isAuction).to.equal(true);
+      expect(listing.highestBid).to.equal(0);
+      expect(listing.highestBidder).to.equal(ZeroAddress);
+
+      const block = await ethers.provider.getBlock("latest");
+      expect(listing.auctionEndTime).to.be.greaterThan(block.timestamp);
+
+      /*
+      Part 2: addr2 bids on the listed Pokemon.
+      */
+      const bidAmount = ethers.parseEther("0.8"); //Minimum bid is 0.5
+      await expect(
+        tradingContract.connect(addr2).placeBid(pokemonId, { value: bidAmount })
+      )
+        .to.emit(tradingContract, "BidPlaced")
+        .withArgs(pokemonId, bidAmount, addr2.address);
+
+      listing = await tradingContract.listings(pokemonId);
+      expect(listing.highestBid).to.equal(bidAmount);
+      expect(listing.highestBidder).to.equal(addr2.address);
+    });
+
+    it("Should finalize auction, pay finalizer the reward, send Pokemon to buyer", async function () {
+      const pokemonId = 1;
+      const auctionDuration = 60 * 60;
+
+      //Step 1: addr1 buys Pokemon with pokemonId
+      await expect(
+        tradingContract
+          .connect(addr1)
+          .buyPokemon(pokemonId, { value: ethers.parseEther("1") })
+      )
+        .to.emit(tradingContract, "PokemonSold")
+        .withArgs(pokemonId, ethers.parseEther("1"), addr1.address);
+
+      //Step 2: addr1 approves tradingContract and lists the bought Pokemon for auction
+      await pokemonContract
+        .connect(addr1)
+        .approve(tradingContract.target, pokemonId);
+
       await tradingContract
         .connect(addr1)
         .listPokemon(
           pokemonId,
           ethers.parseEther("0.5"),
           true,
-          auctionDuration
+          auctionDuration,
+          { value: FINALIZER_FEE }
         );
 
-      const listing = await tradingContract.listings(pokemonId);
+      //Validate auction listing
+      let listing = await tradingContract.listings(pokemonId);
       expect(listing.isAuction).to.equal(true);
+      expect(listing.highestBid).to.equal(0);
+      expect(listing.highestBidder).to.equal(ZeroAddress);
 
       const block = await ethers.provider.getBlock("latest");
       expect(listing.auctionEndTime).to.be.greaterThan(block.timestamp);
-    });
 
-    /////////////////////////////////////////////////////////////////////////////////
-    //Fix these testcases: Owner of the Pokemon needs to approve the TradingContract
-
-    it("Should allow bidding on an auction", async function () {
-      const pokemonId = 1;
-      const auctionDuration = 24 * 60 * 60;
-      await pokemonContract.mintPokemon(
-        "AuctionPoke",
-        "AuctionType",
-        ethers.parseEther("1")
-      );
-      await tradingContract
-        .connect(owner)
-        .listPokemon(
-          pokemonId,
-          ethers.parseEther("0.5"),
-          true,
-          auctionDuration
-        );
-
-      const bidAmount = ethers.parseEther("0.8");
+      //addr2 places a bid on the listed auction
       await expect(
-        tradingContract.connect(addr1).placeBid(pokemonId, { value: bidAmount })
+        tradingContract
+          .connect(addr2)
+          .placeBid(pokemonId, { value: ethers.parseEther("0.6") })
       )
         .to.emit(tradingContract, "BidPlaced")
-        .withArgs(pokemonId, bidAmount, addr1.address);
+        .withArgs(pokemonId, ethers.parseEther("0.6"), addr2.address);
 
-      const listing = await tradingContract.listings(pokemonId);
-      expect(listing.highestBid).to.equal(bidAmount);
-      expect(listing.highestBidder).to.equal(addr1.address);
+      //Increase time to simulate auction expiration
+      await ethers.provider.send("evm_increaseTime", [auctionDuration]);
+      await ethers.provider.send("evm_mine", []);
+
+      //Step 3: Let addr2 finalize auction
+      await expect(tradingContract.connect(addr2).finalizeAuction(pokemonId))
+        .to.emit(tradingContract, "PokemonSold")
+        .withArgs(pokemonId, ethers.parseEther("0.6"), addr2.address)
+        //Test if finalizer received reward
+        .to.emit(tradingContract, "RewardPaid")
+        .withArgs(addr2.address, FINALIZER_FEE);
+
+      //Verify ownership
+      const newOwner = await pokemonContract.ownerOf(pokemonId);
+      expect(newOwner).to.equal(addr2.address);
     });
 
     it("Should fail to place a bid lower than the current highest bid", async function () {
-      const pokemonId = 1;
-      await pokemonContract.mintPokemon(
-        "AuctionPoke",
-        "AuctionType",
-        ethers.parseEther("1")
-      );
+      const pokemonId = 3;
+
+      //Step 1: addr1 buys the Pokemon
       await tradingContract
-        .connect(owner)
-        .listPokemon(pokemonId, ethers.parseEther("0.5"), true, 24 * 60 * 60);
+        .connect(addr3)
+        .buyPokemon(pokemonId, { value: ethers.parseEther("1") });
+
+      //Step 2: addr3 approves and lists the bought Pokemon for auction
+      await pokemonContract.connect(addr3).approve(tradingContract, pokemonId);
+
+      await tradingContract
+        .connect(addr3)
+        .listPokemon(pokemonId, ethers.parseEther("0.5"), true, 24 * 60 * 60, {
+          value: FINALIZER_FEE,
+        });
+
+      //Step 3: Let users bid on the auction:
+      //3.1: Valid bid
       await tradingContract
         .connect(addr1)
         .placeBid(pokemonId, { value: ethers.parseEther("0.8") });
 
+      //3.2 valid bid
+      await tradingContract
+        .connect(addr2)
+        .placeBid(pokemonId, { value: ethers.parseEther("0.8001") });
+
+      //3.3 Invalid bid
       await expect(
         tradingContract
           .connect(addr2)
           .placeBid(pokemonId, { value: ethers.parseEther("0.5") })
-      ).to.be.revertedWith("Bid must be higher than the current highest bid");
+      ).to.be.revertedWith(
+        "Bid must be at least 0.0001 ETH higher than previous bid"
+      );
+
+      //3.4 Invalid bid
+      await expect(
+        tradingContract
+          .connect(addr2)
+          .placeBid(pokemonId, { value: ethers.parseEther("0.8") })
+      ).to.be.revertedWith(
+        "Bid must be at least 0.0001 ETH higher than previous bid"
+      );
+
+      //3.5 Invalid bid
+      await expect(
+        tradingContract
+          .connect(addr2)
+          .placeBid(pokemonId, { value: ethers.parseEther("0.80011") })
+      ).to.be.revertedWith(
+        "Bid must be at least 0.0001 ETH higher than previous bid"
+      );
     });
 
-    it("Should finalize the auction and transfer Pokémon to the highest bidder", async function () {
-      const pokemonId = 1;
-      const auctionDuration = 24 * 60 * 60;
-      await pokemonContract.mintPokemon(
-        "AuctionPoke",
-        "AuctionType",
-        ethers.parseEther("1")
-      );
+    it("Should send listed Pokemon back to seller if no one placed a bid and auction is finalized", async function () {
+      const pokemonId = 4;
+      const auctionDuration = 60 * 60;
+
+      //Step 1: addr1 buys Pokemon with pokemonId
+      await expect(
+        tradingContract
+          .connect(addr1)
+          .buyPokemon(pokemonId, { value: ethers.parseEther("1") })
+      )
+        .to.emit(tradingContract, "PokemonSold")
+        .withArgs(pokemonId, ethers.parseEther("1"), addr1.address);
+
+      //Step 2: addr1 approves tradingContract and lists the bought Pokemon for auction
+      await pokemonContract
+        .connect(addr1)
+        .approve(tradingContract.target, pokemonId);
+
       await tradingContract
-        .connect(owner)
+        .connect(addr1)
         .listPokemon(
           pokemonId,
           ethers.parseEther("0.5"),
           true,
-          auctionDuration
+          auctionDuration,
+          { value: FINALIZER_FEE }
         );
 
-      const bidAmount = ethers.parseEther("0.8");
-      await tradingContract
-        .connect(addr1)
-        .placeBid(pokemonId, { value: bidAmount });
+      //Validate auction listing
+      let listing = await tradingContract.listings(pokemonId);
+      expect(listing.isAuction).to.equal(true);
+      expect(listing.highestBid).to.equal(0);
+      expect(listing.highestBidder).to.equal(ZeroAddress);
 
+      const block = await ethers.provider.getBlock("latest");
+      expect(listing.auctionEndTime).to.be.greaterThan(block.timestamp);
+
+      //Increase time to simulate auction expiration
       await ethers.provider.send("evm_increaseTime", [auctionDuration]);
       await ethers.provider.send("evm_mine", []);
 
-      await expect(tradingContract.connect(owner).finalizeAuction(pokemonId))
+      //Step 3: Let addr2 finalize auction
+      await expect(tradingContract.connect(addr2).finalizeAuction(pokemonId))
         .to.emit(tradingContract, "PokemonSold")
-        .withArgs(pokemonId, bidAmount, addr1.address);
+        .withArgs(pokemonId, 0, addr1.address)
+        //Test if finalizer received reward
+        .to.emit(tradingContract, "RewardPaid")
+        .withArgs(addr2.address, FINALIZER_FEE);
+
+      //Verify ownership
+      const newOwner = await pokemonContract.ownerOf(pokemonId);
+      expect(newOwner).to.equal(addr1.address);
     });
   });
 });

@@ -17,7 +17,9 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   }
 
   mapping(uint256 => Listing) public listings;
+  mapping(uint256 => uint256) public auctionRewards;
   IERC721 public pokemonContract;
+  uint256 public constant FINALIZER_FEE = 0.0001 ether;
 
   event Listed(uint256 indexed pokemonId, uint256 price, bool isAuction);
   event BidPlaced(
@@ -33,6 +35,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   event Withdrawn(address indexed user, uint256 amount);
   event ListingRemoved(uint256 indexed pokemonId);
   event TokenReceived(address operator, address from, uint256 tokenId);
+  event RewardPaid(address finalizer, uint256 rewardAmount);
 
   constructor(address _pokemonContract) {
     pokemonContract = IERC721(_pokemonContract); // Address of the deployed Pokémon NFT contract
@@ -81,10 +84,12 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     uint256 price,
     bool isAuction,
     uint256 auctionDuration
-  ) external onlyPokemonOwner(pokemonId) {
+  ) external payable onlyPokemonOwner(pokemonId) {
     require(price > 0, "Price must be larger than zero");
 
     if (isAuction) {
+      require(msg.value >= FINALIZER_FEE, "Must send ETH for finalizer reward");
+
       require(
         auctionDuration > 0,
         "Auction duration must be greater than zero"
@@ -100,6 +105,10 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
       highestBidder: address(0),
       highestBid: 0
     });
+
+    if (isAuction) {
+      auctionRewards[pokemonId] = msg.value;
+    }
 
     //Transfer Pokemon to the Contract -> Cannot be listed twice.
     pokemonContract.safeTransferFrom(msg.sender, address(this), pokemonId);
@@ -133,9 +142,11 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     uint256 pokemonId
   ) external payable auctionOngoing(pokemonId) {
     Listing storage listing = listings[pokemonId];
+
+    uint256 minimumBid = listing.highestBid + 0.0001 ether;
     require(
-      msg.value > listing.highestBid,
-      "Bid must be higher than the current highest bid"
+      msg.value >= minimumBid,
+      "Bid must be at least 0.0001 ETH higher than previous bid"
     );
 
     //Refund the previous highest bidder
@@ -156,7 +167,9 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     require(listing.isAuction, "Not an auction");
     require(block.timestamp >= listing.auctionEndTime, "Auction not ended");
 
-    //Check if there was a bid placed
+    uint256 rewardAmount = auctionRewards[pokemonId];
+
+    //Check if no bids were placed
     if (listing.highestBidder == address(0)) {
       pokemonContract.safeTransferFrom(
         address(this),
@@ -175,8 +188,15 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
       emit PokemonSold(pokemonId, listing.highestBid, listing.highestBidder);
     }
 
-    //Remove listing after auction ends
+    //Send reward to the finalizer
+    if (rewardAmount > 0) {
+      payable(msg.sender).transfer(rewardAmount);
+      emit RewardPaid(msg.sender, rewardAmount);
+    }
+
+    //Clean up listing after auction is finished
     delete listings[pokemonId];
+    delete auctionRewards[pokemonId];
   }
 
   function removeListing(
