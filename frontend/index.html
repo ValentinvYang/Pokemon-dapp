@@ -1,50 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pokemon Trading DApp</title>
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
-      rel="stylesheet"
-    />
+    <title>Vite + React</title>
   </head>
   <body>
-    <nav class="nav">
-      <img class="nav__item nav__logo" src="images/logo.png" alt="" />
-      <a
-        class="nav__item"
-        href="javascript: document.body.scrollIntoView(false);"
-        >About</a
-      >
-    </nav>
-    <section class="hero-section">
-      <div class="main__container">
-        <h1>Start Decentralized Pokemon Trading</h1>
-        <button id="connectButton" class="get__started">
-          Connect to MetaMask
-        </button>
-        <div id="account"></div>
-      </div>
-    </section>
-
-    <section class="about-section">
-      <div class="about-container">
-        <h2>About Us</h2>
-        <p>Welcome to the world of Pokemon trading! Here you can:</p>
-        <ul>
-          <li>Trade your favorite Pokemon</li>
-          <li>Collect rare and powerful Pokemon (maybe)</li>
-          <li>Build your dream team</li>
-          <li>Connect with other Pokemon enthusiasts</li>
-        </ul>
-      </div>
-    </section>
-
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.0.0/dist/ethers.min.js"></script>
-    <script src="app.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

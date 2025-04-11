@@ -6,6 +6,7 @@ module.exports = buildModule("PokemonContractModule", (m) => {
     "PokemonContract",
     "PKM",
   ]);
+  const tradingContract = m.contract("TradingContract", [pokemonContract]);
 
-  return { pokemonContract };
+  return { pokemonContract, tradingContract };
 });
