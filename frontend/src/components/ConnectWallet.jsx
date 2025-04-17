@@ -1,36 +1,33 @@
-import { useState, useEffect } from "react";
-import { ethers } from "ethers";
+import { useState } from "react";
+import { BrowserProvider } from "ethers";
 
-function ConnectWallet() {
-  const [account, setAccount] = useState(null);
+export default function ConnectWallet({ onConnect }) {
+  const [error, setError] = useState(null);
 
   const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const network = await provider.getNetwork();
-        console.log(network.chainId.toString());
-        await provider.send("eth_requestAccounts", []);
-        const signer = await provider.getSigner();
-        const address = await signer.getAddress();
-        setAccount(address);
-      } catch (error) {
-        console.error("Error connecting wallt:", error);
+    try {
+      if (!window.ethereum) {
+        setError("MetaMask is not installed.");
+        return;
       }
-    } else {
-      alert("Please install MetaMask");
+
+      const provider = new BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      onConnect(); // Notify parent to update UI
+    } catch (err) {
+      setError("Connection failed. Make sure MetaMask is unlocked.");
     }
   };
 
   return (
-    <>
-      {account ? (
-        <p>Connected: {account}</p>
-      ) : (
-        <button onClick={connectWallet}>Connect to Wallet</button>
-      )}
-    </>
+    <div className="flex flex-col items-center">
+      <button
+        onClick={connectWallet}
+        className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600"
+      >
+        Connect Wallet
+      </button>
+      {error && <p className="text-red-500 mt-2">{error}</p>}
+    </div>
   );
 }
-
-export default ConnectWallet;

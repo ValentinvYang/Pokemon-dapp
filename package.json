@@ -2,6 +2,7 @@
   "name": "pokemon-dapp",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -17,6 +18,10 @@
     "prettier-plugin-solidity": "^1.4.2"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.2.0"
+    "@helia/http": "^2.0.5",
+    "@helia/unixfs": "^5.0.0",
+    "@openzeppelin/contracts": "^5.2.0",
+    "dotenv": "^16.5.0",
+    "helia": "^5.3.0"
   }
 }

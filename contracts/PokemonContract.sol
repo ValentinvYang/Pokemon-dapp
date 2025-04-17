@@ -10,16 +10,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 contract PokemonContract is ERC721, Ownable {
-  struct Pokemon {
-    string name;
-    string pokeType;
-    uint256 price; //Price in wei
-  }
-
   uint256 private _nextTokenId;
-  mapping(uint256 => Pokemon) public pokemons;
+  mapping(uint256 => string) private _tokenURIs;
 
-  event PokemonMinted(uint256 indexed tokenId, string name, string pokeType);
+  event PokemonMinted(uint256 indexed pokemonId, string CID);
 
   constructor(
     string memory _name,
@@ -28,35 +22,35 @@ contract PokemonContract is ERC721, Ownable {
     _nextTokenId = 0;
   }
 
-  function increment() private {
+  function increment() internal {
     _nextTokenId++;
   }
 
-  function mintPokemon(
-    string memory name,
-    string memory pokeType,
-    uint256 price
-  ) external onlyOwner {
-    uint256 tokenId = _nextTokenId;
-    pokemons[tokenId] = Pokemon(name, pokeType, price);
-    _safeMint(msg.sender, _nextTokenId); //Mint to contract
+  function mintPokemon(string memory ipfsCID) external onlyOwner {
+    uint256 pokemonId = _nextTokenId;
+    _safeMint(msg.sender, pokemonId); //Mint to owner
+    _setTokenURI(pokemonId, ipfsCID);
 
-    emit PokemonMinted(tokenId, name, pokeType);
+    emit PokemonMinted(pokemonId, ipfsCID);
     increment();
+  }
+
+  function _setTokenURI(uint256 pokemonId, string memory _ipfsCID) internal {
+    _tokenURIs[pokemonId] = string(abi.encodePacked("ipfs://", _ipfsCID));
   }
 
   function getNextTokenId() public view returns (uint256) {
     return _nextTokenId;
   }
 
-  function getPokemon(uint256 tokenId) public view returns (Pokemon memory) {
-    require(_ownerOf(tokenId) != address(0), "Token ID does not exist");
-    return pokemons[tokenId];
+  function getTokenURI(uint256 pokemonId) public view returns (string memory) {
+    require(_ownerOf(pokemonId) != address(0), "Token ID does not exist");
+    return _tokenURIs[pokemonId];
   }
 
-  function getTokenOwner(uint256 tokenId) public view returns (address) {
-    require(_ownerOf(tokenId) != address(0), "Token ID does not exist");
-    return ownerOf(tokenId);
+  function getTokenOwner(uint256 pokemonId) public view returns (address) {
+    require(_ownerOf(pokemonId) != address(0), "Token ID does not exist");
+    return ownerOf(pokemonId);
   }
 
   function getTokenBalance(address owner) public view returns (uint256) {

@@ -17,6 +17,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   }
 
   mapping(uint256 => Listing) public listings;
+  uint256[] public activeListingIds;
 
   //Pull payment pattern for auction bids to prevent Reentrancy and Dos attacks
   mapping(address => uint256) public pendingRefunds;
@@ -118,6 +119,8 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
       highestBid: 0
     });
 
+    activeListingIds.push(pokemonId);
+
     if (isAuction) {
       auctionRewards[pokemonId] = msg.value;
     }
@@ -147,6 +150,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
 
     //Remove listing
     delete listings[pokemonId];
+    _removeListingById(pokemonId);
     emit ListingRemoved(pokemonId);
   }
 
@@ -209,6 +213,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
 
     //Clean up listing after auction is finished
     delete listings[pokemonId];
+    _removeListingById(pokemonId);
     delete auctionRewards[pokemonId];
 
     emit ListingRemoved(pokemonId);
@@ -231,6 +236,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     emit ListingRemoved(pokemonId);
 
     delete listings[pokemonId];
+    _removeListingById(pokemonId);
   }
 
   function withdrawRefund() external nonReentrant {
@@ -241,5 +247,20 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     payable(msg.sender).transfer(amount);
 
     emit Withdrawn(msg.sender, amount);
+  }
+
+  function _removeListingById(uint256 pokemonId) internal {
+    uint256 l = activeListingIds.length;
+    for (uint256 i = 0; i < l; i++) {
+      if (activeListingIds[i] == pokemonId) {
+        activeListingIds[i] = activeListingIds[l - 1];
+        activeListingIds.pop();
+        break;
+      }
+    }
+  }
+
+  function getAllActiveListings() public view returns (uint256[] memory) {
+    return activeListingIds;
   }
 }
