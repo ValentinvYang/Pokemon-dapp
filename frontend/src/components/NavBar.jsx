@@ -1,7 +1,7 @@
 // src/components/NavBar.jsx
 import { useEffect, useState } from "react";
 
-export default function NavBar({ isConnected, onConnect }) {
+export default function NavBar({ isConnected }) {
   const [address, setAddress] = useState(null);
 
   useEffect(() => {
@@ -19,14 +19,13 @@ export default function NavBar({ isConnected, onConnect }) {
   const handleConnect = async () => {
     if (window.ethereum) {
       await window.ethereum.request({ method: "eth_requestAccounts" });
-      onConnect();
     }
   };
 
   return (
     <nav className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
       {/* Logo */}
-      <div className="text-2xl font-bold text-blue-600">🧬 PokéTrade</div>
+      <div className="text-2xl font-bold text-blue-600">🧬 Vyang Trading</div>
 
       {/* Nav Links */}
       <div className="flex items-center space-x-6 text-gray-700 font-medium">

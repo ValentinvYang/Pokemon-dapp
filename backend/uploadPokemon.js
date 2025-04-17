@@ -52,7 +52,7 @@ const main = async () => {
     signer
   );
 
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 50; i++) {
     const data = await fetchPokemon(i);
 
     // Download image

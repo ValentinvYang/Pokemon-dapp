@@ -1,23 +1,22 @@
 import { useEffect, useState } from "react";
-import useContracts from "../hooks/useContracts";
+import { useContracts } from "../contexts/AppContracts";
 
 export default function PokemonCard({ pokemonId }) {
-  const { getContracts } = useContracts();
+  const { pokemonContract } = useContracts();
   const [metadata, setMetadata] = useState(null);
 
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        if (!getContracts) return;
+        if (!pokemonContract || pokemonId === undefined) return;
 
-        const { pokemonContract } = await getContracts(); // pokemonContract is a Promise
         const tokenUri = await pokemonContract.getTokenURI(pokemonId);
         const cid = tokenUri.replace("ipfs://", "");
 
-        //Fetch metatdata JSON from local Helia server
         const metadataUrl = `http://localhost:8080/?cid=${cid}&json=true`;
         const res = await fetch(metadataUrl);
         const data = await res.json();
+
         const imageCid = data.image.replace("ipfs://", "");
         const imageUrl = `http://localhost:8080/?cid=${imageCid}`;
 
@@ -29,18 +28,22 @@ export default function PokemonCard({ pokemonId }) {
     };
 
     fetchMetadata();
-  }, [getContracts, pokemonId]);
+  }, [pokemonContract, pokemonId]);
 
   if (!metadata) return <div>Loading Pokemon</div>;
 
   return (
-    <div className="pokemon-card">
-      <h3>{metadata.name}</h3>
-      <img src={metadata.image} alt={metadata.name} />
-      <ul>
+    <div className="pokemon-card bg-white rounded-lg shadow-md p-4 text-center">
+      <h3 className="text-lg font-bold mb-2">{metadata.name}</h3>
+      <img
+        src={metadata.image}
+        alt={metadata.name}
+        className="w-full h-auto rounded"
+      />
+      <ul className="mt-4 text-sm text-left">
         {metadata.attributes.map((attr, i) => (
           <li key={i}>
-            {attr.trait_type}: {attr.value}
+            <strong>{attr.trait_type}</strong>: {attr.value}
           </li>
         ))}
       </ul>
