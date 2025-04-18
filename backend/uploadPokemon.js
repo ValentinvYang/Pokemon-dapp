@@ -14,6 +14,17 @@ const pokemonArtifact = JSON.parse(
 
 const POKEMON_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
+const tradingArtifact = JSON.parse(
+  await readFile(
+    new URL(
+      "../artifacts/contracts/TradingContract.sol/TradingContract.json",
+      import.meta.url
+    )
+  )
+);
+
+const TRADING_CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+
 // Fetch Pokemon data from PokéAPI
 const fetchPokemon = async (id) => {
   const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`);
@@ -52,6 +63,12 @@ const main = async () => {
     signer
   );
 
+  const tradingContract = new ethers.Contract(
+    TRADING_CONTRACT_ADDRESS,
+    tradingArtifact.abi,
+    signer
+  );
+
   for (let i = 1; i <= 50; i++) {
     const data = await fetchPokemon(i);
 
@@ -87,6 +104,17 @@ const main = async () => {
     await tx.wait();
 
     console.log(`✅ Minted ${data.name} with CID: ${metadataCid}`);
+
+    //Create a non-auction listing for users to buy the minted Pokemon:
+    await pokemonContract
+      .connect(signer)
+      .approve(tradingContract.target, i - 1);
+    const createListing = await tradingContract
+      .connect(signer)
+      .listPokemon(i - 1, ethers.parseEther("1"), false, 0);
+    await createListing.wait();
+
+    console.log(`Listed Pokemon with ID ${i - 1}`);
   }
 };
 

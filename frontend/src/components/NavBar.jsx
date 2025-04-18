@@ -23,9 +23,14 @@ export default function NavBar({ isConnected }) {
   };
 
   return (
-    <nav className="flex justify-between items-center px-6 py-4 bg-white shadow-md">
+    <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-white shadow-md">
       {/* Logo */}
-      <div className="text-2xl font-bold text-blue-600">🧬 Vyang Trading</div>
+      <div
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="text-2xl font-bold text-blue-600 cursor-pointer"
+      >
+        🧬 Vyang Trading
+      </div>
 
       {/* Nav Links */}
       <div className="flex items-center space-x-6 text-gray-700 font-medium">

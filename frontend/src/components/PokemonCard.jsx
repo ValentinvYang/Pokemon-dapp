@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useContracts } from "../contexts/AppContracts";
+import PokemonModal from "./PokemonModal";
 
 export default function PokemonCard({ pokemonId }) {
   const { pokemonContract } = useContracts();
   const [metadata, setMetadata] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchMetadata = async () => {
@@ -33,20 +35,24 @@ export default function PokemonCard({ pokemonId }) {
   if (!metadata) return <div>Loading Pokemon</div>;
 
   return (
-    <div className="pokemon-card bg-white rounded-lg shadow-md p-4 text-center">
-      <h3 className="text-lg font-bold mb-2">{metadata.name}</h3>
-      <img
-        src={metadata.image}
-        alt={metadata.name}
-        className="w-full h-auto rounded"
+    <>
+      <div
+        className="pokemon-card bg-white rounded-lg shadow-md p-4 text-center cursor-pointer"
+        onClick={() => setIsOpen(true)}
+      >
+        <h3 className="text-lg font-bold mb-2">{metadata.name}</h3>
+        <img
+          src={metadata.image}
+          alt={metadata.name}
+          className="w-full h-auto rounded"
+        />
+      </div>
+
+      <PokemonModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        metadata={metadata}
       />
-      <ul className="mt-4 text-sm text-left">
-        {metadata.attributes.map((attr, i) => (
-          <li key={i}>
-            <strong>{attr.trait_type}</strong>: {attr.value}
-          </li>
-        ))}
-      </ul>
-    </div>
+    </>
   );
 }
