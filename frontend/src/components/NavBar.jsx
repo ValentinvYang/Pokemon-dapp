@@ -1,7 +1,6 @@
-// src/components/NavBar.jsx
 import { useEffect, useState } from "react";
 
-export default function NavBar({ isConnected }) {
+export default function NavBar({ isConnected, view, setView }) {
   const [address, setAddress] = useState(null);
 
   useEffect(() => {
@@ -27,21 +26,48 @@ export default function NavBar({ isConnected }) {
       {/* Logo */}
       <div
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="text-2xl font-bold text-blue-600 cursor-pointer"
+        className="cursor-pointer flex items-center space-x-2"
       >
-        🧬 Vyang Trading
+        <img
+          src="logo.png"
+          alt="Vyang Trading Logo"
+          className="w-10 h-10 object-contain"
+        />
+        <span className="text-2xl font-bold text-orange-600">
+          Vyang Trading
+        </span>
       </div>
 
       {/* Nav Links */}
       <div className="flex items-center space-x-6 text-gray-700 font-medium">
-        <a href="#" className="hover:text-blue-600 transition">
-          Home
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setView("gallery");
+          }}
+          className={`hover:text-blue-600 transition ${
+            view === "gallery" ? "text-blue-600 font-semibold" : ""
+          }`}
+        >
+          Gallery
         </a>
-        <a href="#my-pokemon" className="hover:text-blue-600 transition">
-          My Pokémon
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setView("marketplace");
+          }}
+          className={`hover:text-blue-600 transition ${
+            view === "marketplace" ? "text-blue-600 font-semibold" : ""
+          }`}
+        >
+          Marketplace
         </a>
+
+        {/* Additional Links Placeholder*/}
         <a href="#trade" className="hover:text-blue-600 transition">
-          Trade
+          My Pokemon
         </a>
         <a href="#activity" className="hover:text-blue-600 transition">
           Activity

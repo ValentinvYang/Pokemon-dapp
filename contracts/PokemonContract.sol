@@ -56,4 +56,17 @@ contract PokemonContract is ERC721, Ownable {
   function getTokenBalance(address owner) public view returns (uint256) {
     return balanceOf(owner);
   }
+
+  function exists(uint256 pokemonId) public view returns (bool) {
+    return _ownerOf(pokemonId) != address(0);
+  }
+
+  function getAllMintedTokenIds() public view returns (uint256[] memory) {
+    uint256 total = _nextTokenId;
+    uint256[] memory ids = new uint256[](total);
+    for (uint256 i = 0; i < total; i++) {
+      ids[i] = i;
+    }
+    return ids;
+  }
 }

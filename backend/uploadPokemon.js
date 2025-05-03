@@ -1,29 +1,24 @@
 import axios from "axios";
 import { ethers } from "ethers";
 import { readFile } from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Read the compiled contract ABIs
-const pokemonArtifact = JSON.parse(
+// Resolve __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load contract metadata from generated file
+const contracts = JSON.parse(
   await readFile(
-    new URL(
-      "../artifacts/contracts/PokemonContract.sol/PokemonContract.json",
-      import.meta.url
-    )
+    path.resolve(__dirname, "../frontend/src/contracts/contracts.json")
   )
 );
 
-const POKEMON_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-
-const tradingArtifact = JSON.parse(
-  await readFile(
-    new URL(
-      "../artifacts/contracts/TradingContract.sol/TradingContract.json",
-      import.meta.url
-    )
-  )
-);
-
-const TRADING_CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+const pokemonAbi = contracts.PokemonContract.abi;
+const tradingAbi = contracts.TradingContract.abi;
+const POKEMON_CONTRACT_ADDRESS = contracts.PokemonContract.address;
+const TRADING_CONTRACT_ADDRESS = contracts.TradingContract.address;
 
 // Fetch Pokemon data from PokéAPI
 const fetchPokemon = async (id) => {
@@ -59,17 +54,17 @@ const main = async () => {
 
   const pokemonContract = new ethers.Contract(
     POKEMON_CONTRACT_ADDRESS,
-    pokemonArtifact.abi,
+    pokemonAbi,
     signer
   );
 
   const tradingContract = new ethers.Contract(
     TRADING_CONTRACT_ADDRESS,
-    tradingArtifact.abi,
+    tradingAbi,
     signer
   );
 
-  for (let i = 1; i <= 50; i++) {
+  for (let i = 1; i <= 10; i++) {
     const data = await fetchPokemon(i);
 
     // Download image
@@ -114,7 +109,7 @@ const main = async () => {
       .listPokemon(i - 1, ethers.parseEther("1"), false, 0);
     await createListing.wait();
 
-    console.log(`Listed Pokemon with ID ${i - 1}`);
+    console.log(`Listed Pokemon with ID ${i - 1} from ${signer.address}`);
   }
 };
 

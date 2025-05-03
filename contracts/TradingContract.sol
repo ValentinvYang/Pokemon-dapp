@@ -260,7 +260,71 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     }
   }
 
-  function getAllActiveListings() public view returns (uint256[] memory) {
-    return activeListingIds;
+  function getListing(uint256 pokemonId) public view returns (Listing memory) {
+    return listings[pokemonId];
+  }
+
+  function getAllListingsWithDetails()
+    external
+    view
+    returns (Listing[] memory)
+  {
+    uint256 l = activeListingIds.length;
+    Listing[] memory result = new Listing[](l);
+    for (uint256 i = 0; i < l; i++) {
+      result[i] = listings[activeListingIds[i]];
+    }
+    return result;
+  }
+
+  function getUserListings(
+    address user
+  ) external view returns (Listing[] memory) {
+    uint256 count = 0;
+    for (uint256 i = 0; i < activeListingIds.length; i++) {
+      if (listings[activeListingIds[i]].seller == user) {
+        count++;
+      }
+    }
+
+    Listing[] memory userListings = new Listing[](count);
+    uint256 index = 0;
+    for (uint256 i = 0; i < activeListingIds.length; i++) {
+      if (listings[activeListingIds[i]].seller == user) {
+        userListings[index] = listings[activeListingIds[i]];
+        index++;
+      }
+    }
+
+    return userListings;
+  }
+
+  function isListed(uint256 pokemonId) public view returns (bool) {
+    return listings[pokemonId].seller != address(0);
+  }
+
+  function getAuctionState(
+    uint256 pokemonId
+  )
+    external
+    view
+    returns (
+      bool isActive,
+      uint256 timeRemaining,
+      address highestBidder,
+      uint256 highestBid
+    )
+  {
+    Listing storage listing = listings[pokemonId];
+    require(listing.isAuction, "Not an auction");
+
+    isActive = block.timestamp < listing.auctionEndTime;
+    timeRemaining = isActive ? listing.auctionEndTime - block.timestamp : 0;
+    highestBidder = listing.highestBidder;
+    highestBid = listing.highestBid;
+  }
+
+  function getSellerOf(uint256 tokenId) external view returns (address) {
+    return listings[tokenId].seller;
   }
 }

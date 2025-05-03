@@ -2,15 +2,22 @@ import { useEffect, useState } from "react";
 import { useContracts } from "../contexts/AppContracts";
 import PokemonModal from "./PokemonModal";
 
-export default function PokemonCard({ pokemonId }) {
-  const { pokemonContract } = useContracts();
+export default function PokemonCard({ pokemonId, listing = null }) {
+  const { pokemonContract, tradingContract } = useContracts();
   const [metadata, setMetadata] = useState(null);
+  const [owner, setOwner] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
         if (!pokemonContract || pokemonId === undefined) return;
+
+        const total = await pokemonContract.getNextTokenId();
+        if (pokemonId >= total) {
+          console.warn("Token ID not yet minted:", pokemonId);
+          return;
+        }
 
         const tokenUri = await pokemonContract.getTokenURI(pokemonId);
         const cid = tokenUri.replace("ipfs://", "");
@@ -29,7 +36,23 @@ export default function PokemonCard({ pokemonId }) {
       }
     };
 
+    const fetchOwner = async () => {
+      try {
+        let owner;
+        if (!listing) {
+          owner = await pokemonContract.ownerOf(pokemonId);
+        } else {
+          owner = listing.seller;
+        }
+        setOwner(owner);
+      } catch (err) {
+        console.error("Error loading owner of the Pokemon:", err);
+        setOwner(null);
+      }
+    };
+
     fetchMetadata();
+    fetchOwner();
   }, [pokemonContract, pokemonId]);
 
   if (!metadata) return <div>Loading Pokemon</div>;
@@ -52,6 +75,8 @@ export default function PokemonCard({ pokemonId }) {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         metadata={metadata}
+        owner={owner}
+        listing={listing}
       />
     </>
   );

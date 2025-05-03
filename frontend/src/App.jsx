@@ -2,20 +2,18 @@ import { useEffect, useState } from "react";
 import NavBar from "./components/NavBar";
 import ConnectWallet from "./components/ConnectWallet";
 import MarketPlace from "./components/MarketPlace";
+import Gallery from "./components/Gallery";
 
 //Contracts:
 import { ContractContext } from "./contexts/AppContracts";
 import { BrowserProvider, Contract } from "ethers";
-import pokemonAbi from "./contracts/PokemonContractABI.json";
-import tradingAbi from "./contracts/TradingContractABI.json";
-
-const POKEMON_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-const TRADING_CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
+import contractData from "./contracts/contracts.json";
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [contracts, setContracts] = useState(null);
   const [error, setError] = useState(null);
+  const [view, setView] = useState("gallery"); //controls current screen
 
   //Create contract instances that are passed to children as context
   const createContracts = async () => {
@@ -32,13 +30,13 @@ function App() {
       const address = await signer.getAddress();
 
       const pokemonContract = new Contract(
-        POKEMON_CONTRACT_ADDRESS,
-        pokemonAbi.abi,
+        contractData.PokemonContract.address,
+        contractData.PokemonContract.abi,
         signer
       );
       const tradingContract = new Contract(
-        TRADING_CONTRACT_ADDRESS,
-        tradingAbi.abi,
+        contractData.TradingContract.address,
+        contractData.TradingContract.abi,
         signer
       );
 
@@ -97,10 +95,7 @@ function App() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
         <ConnectWallet onConnect={createContracts} />
         {error && (
-          <p className="text-red-500 mt-4 px-4 text-center max-w-md">
-            {" "}
-            {error}{" "}
-          </p>
+          <p className="text-red-500 mt-4 px-4 text-center max-w-md">{error}</p>
         )}
       </div>
     );
@@ -108,8 +103,11 @@ function App() {
 
   return (
     <ContractContext.Provider value={contracts}>
-      <NavBar isConnected={isConnected} />
-      <MarketPlace />
+      <NavBar isConnected={isConnected} view={view} setView={setView} />
+
+      {/* Content switches based on selected view */}
+      {view === "gallery" && <Gallery />}
+      {view === "marketplace" && <MarketPlace />}
     </ContractContext.Provider>
   );
 }
