@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { readFileSync, writeFileSync } from "fs";
 
 // Resolve __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -64,18 +65,25 @@ const main = async () => {
     signer
   );
 
+  const cidMap = {};
+
   for (let i = 1; i <= 10; i++) {
     const data = await fetchPokemon(i);
 
-    // Download image
-    const imageRes = await axios.get(data.imageUrl, {
-      responseType: "arraybuffer",
-    });
-    const imageBytes = new Uint8Array(imageRes.data);
+    //Upload image from the cloned https://github.com/HybridShivam/Pokemon repo (Pokemon folder)
+    const paddedId = String(i).padStart(3, "0");
+    const localImagePath = path.resolve(
+      __dirname,
+      "../Pokemon/assets/images",
+      `${paddedId}.png`
+    );
+    const imageBytes = new Uint8Array(readFileSync(localImagePath));
 
     // Upload image to Helia
     const imageCid = await uploadToHelia(imageBytes);
     const imageIpfs = `ipfs://${imageCid}`;
+
+    cidMap[paddedId] = imageCid;
 
     // Prepare metadata
     const metadata = {
@@ -100,6 +108,7 @@ const main = async () => {
 
     console.log(`✅ Minted ${data.name} with CID: ${metadataCid}`);
 
+    /*
     //Create a non-auction listing for users to buy the minted Pokemon:
     await pokemonContract
       .connect(signer)
@@ -110,7 +119,14 @@ const main = async () => {
     await createListing.wait();
 
     console.log(`Listed Pokemon with ID ${i - 1} from ${signer.address}`);
+    */
   }
+
+  //For debugging and verifying uploads
+  writeFileSync(
+    path.resolve(__dirname, "./gen1-image-cid-map.json"),
+    JSON.stringify(cidMap, null, 2)
+  );
 };
 
 main().catch((err) => {

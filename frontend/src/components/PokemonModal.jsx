@@ -1,6 +1,8 @@
 import React, { useContext } from "react";
 import { ContractContext } from "../contexts/AppContracts";
 import { ethers } from "ethers";
+import OwnerListingForm from "./OwnerListingForm";
+import ListingActions from "./ListingActions";
 
 //Backgrounds:
 import FireBackground from "../assets/FireBackground.png";
@@ -20,77 +22,14 @@ function PokemonAttributes({ attributes }) {
   );
 }
 
-function ListingActions({ isOwner, listing }) {
-  if (!listing) return null;
-
-  const isAuction = listing.isAuction;
-
-  if (isOwner) {
-    return (
-      <button
-        onClick={() => alert("Delist action")}
-        className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg w-full md:w-1/2"
-      >
-        Delist Pokémon
-      </button>
-    );
-  } else {
-    if (isAuction) {
-      return (
-        <>
-          <p className="mb-2 text-gray-700">
-            Highest bid: {ethers.formatEther(listing.highestBid || 0)} ETH
-          </p>
-          <button
-            onClick={() => alert("Bid action")}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg w-full md:w-1/2"
-          >
-            Place Bid higher than {ethers.formatEther(listing.highestBid || 0)}{" "}
-            ETH
-          </button>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <button
-          onClick={() => alert("Buy action")}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg w-full md:w-1/2"
-        >
-          Buy Pokémon for {ethers.formatEther(listing.price)} ETH
-        </button>
-      </>
-    );
-  }
-}
-
-function OwnerListingForm() {
-  return (
-    <div className="space-y-4 w-full md:w-2/3 mx-auto">
-      <p className="text-gray-700 text-center">List your Pokémon:</p>
-      <button
-        onClick={() => alert("List as Fixed Price")}
-        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg w-full"
-      >
-        List as Fixed Price
-      </button>
-      <button
-        onClick={() => alert("List as Auction")}
-        className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-4 py-2 rounded-lg w-full"
-      >
-        List as Auction
-      </button>
-    </div>
-  );
-}
-
 export default function PokemonModal({
   isOpen,
   onClose,
   metadata,
   owner,
   listing,
+  pokemonId,
+  onListed,
 }) {
   if (!isOpen) return null;
 
@@ -117,8 +56,23 @@ export default function PokemonModal({
   };
 
   const renderActionArea = () => {
-    if (listing) return <ListingActions isOwner={isOwner} listing={listing} />;
-    if (!listing && isOwner) return <OwnerListingForm />;
+    if (listing)
+      return (
+        <ListingActions
+          isOwner={isOwner}
+          listing={listing}
+          onClose={onClose}
+          onListed={onListed}
+        />
+      );
+    if (!listing && isOwner)
+      return (
+        <OwnerListingForm
+          pokemonId={pokemonId}
+          onClose={onClose}
+          onListed={onListed}
+        />
+      );
     return null;
   };
 
@@ -151,7 +105,7 @@ export default function PokemonModal({
         {/* Modal Content */}
         <div className="flex flex-col gap-6 flex-grow">
           <h2 className="text-3xl font-bold text-center mt-4">
-            {metadata.name}
+            {metadata.name.charAt(0).toUpperCase() + metadata.name.slice(1)}
           </h2>
 
           <div className="flex flex-col md:flex-row gap-6 flex-grow">

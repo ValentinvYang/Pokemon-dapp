@@ -46,8 +46,8 @@ export default function NavBar({ isConnected, view, setView }) {
             e.preventDefault();
             setView("gallery");
           }}
-          className={`hover:text-blue-600 transition ${
-            view === "gallery" ? "text-blue-600 font-semibold" : ""
+          className={`hover:text-orange-600 transition ${
+            view === "gallery" ? "text-orange-600 font-semibold" : ""
           }`}
         >
           Gallery
@@ -58,18 +58,27 @@ export default function NavBar({ isConnected, view, setView }) {
             e.preventDefault();
             setView("marketplace");
           }}
-          className={`hover:text-blue-600 transition ${
-            view === "marketplace" ? "text-blue-600 font-semibold" : ""
+          className={`hover:text-orange-600 transition ${
+            view === "marketplace" ? "text-orange-600 font-semibold" : ""
           }`}
         >
           Marketplace
         </a>
-
-        {/* Additional Links Placeholder*/}
-        <a href="#trade" className="hover:text-blue-600 transition">
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setView("mypokemon");
+          }}
+          className={`hover:text-orange-600 transition ${
+            view === "mypokemon" ? "text-orange-600 font-semibold" : ""
+          }`}
+        >
           My Pokemon
         </a>
-        <a href="#activity" className="hover:text-blue-600 transition">
+
+        {/* Additional Links Placeholder*/}
+        <a href="#activity" className="hover:text-orange-600 transition">
           Activity
         </a>
 

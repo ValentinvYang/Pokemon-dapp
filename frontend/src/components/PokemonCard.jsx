@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useContracts } from "../contexts/AppContracts";
 import PokemonModal from "./PokemonModal";
 
-export default function PokemonCard({ pokemonId, listing = null }) {
+export default function PokemonCard({ pokemonId, listing = null, onListed }) {
   const { pokemonContract, tradingContract } = useContracts();
   const [metadata, setMetadata] = useState(null);
   const [owner, setOwner] = useState(null);
@@ -63,7 +63,9 @@ export default function PokemonCard({ pokemonId, listing = null }) {
         className="pokemon-card bg-white rounded-lg shadow-md p-4 text-center cursor-pointer"
         onClick={() => setIsOpen(true)}
       >
-        <h3 className="text-lg font-bold mb-2">{metadata.name}</h3>
+        <h3 className="text-lg font-bold mb-2">
+          {metadata.name.charAt(0).toUpperCase() + metadata.name.slice(1)}
+        </h3>
         <img
           src={metadata.image}
           alt={metadata.name}
@@ -77,6 +79,8 @@ export default function PokemonCard({ pokemonId, listing = null }) {
         metadata={metadata}
         owner={owner}
         listing={listing}
+        pokemonId={pokemonId}
+        onListed={onListed}
       />
     </>
   );

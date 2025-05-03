@@ -5,6 +5,11 @@ import PokemonCard from "./PokemonCard.jsx";
 export default function Gallery() {
   const { pokemonContract } = useContracts();
   const [pokemonIds, setPokemonIds] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   useEffect(() => {
     const fetchAllPokemon = async () => {
@@ -20,12 +25,12 @@ export default function Gallery() {
     };
 
     fetchAllPokemon();
-  }, [pokemonContract]);
+  }, [pokemonContract, refreshKey]);
 
   return (
     <div className="pt-20 grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {pokemonIds.map((id) => (
-        <PokemonCard key={id} pokemonId={id} />
+        <PokemonCard key={id} pokemonId={id} onListed={handleRefresh} />
       ))}
     </div>
   );
