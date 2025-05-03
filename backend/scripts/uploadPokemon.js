@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 // Load contract metadata from generated file
 const contracts = JSON.parse(
   await readFile(
-    path.resolve(__dirname, "../frontend/src/contracts/contracts.json")
+    path.resolve(__dirname, "../../frontend/src/contracts/contracts.json")
   )
 );
 
@@ -67,14 +67,14 @@ const main = async () => {
 
   const cidMap = {};
 
-  for (let i = 1; i <= 20; i++) {
+  for (let i = 1; i <= 5; i++) {
     const data = await fetchPokemon(i);
 
     //Upload image from the cloned https://github.com/HybridShivam/Pokemon repo (Pokemon folder)
     const paddedId = String(i).padStart(3, "0");
     const localImagePath = path.resolve(
       __dirname,
-      "../Pokemon/assets/images",
+      "../../Pokemon/assets/images",
       `${paddedId}.png`
     );
     const imageBytes = new Uint8Array(readFileSync(localImagePath));

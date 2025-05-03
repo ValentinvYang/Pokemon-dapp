@@ -15,7 +15,7 @@ dotenv.config();
 const pokemonArtifact = JSON.parse(
   await readFile(
     new URL(
-      "../artifacts/contracts/PokemonContract.sol/PokemonContract.json",
+      "../../artifacts/contracts/PokemonContract.sol/PokemonContract.json",
       import.meta.url
     )
   )
@@ -23,7 +23,7 @@ const pokemonArtifact = JSON.parse(
 const tradingArtifact = JSON.parse(
   await readFile(
     new URL(
-      "../artifacts/contracts/TradingContract.sol/TradingContract.json",
+      "../../artifacts/contracts/TradingContract.sol/TradingContract.json",
       import.meta.url
     )
   )
@@ -70,7 +70,7 @@ const contractsExport = {
 
 const outputPath = path.resolve(
   __dirname,
-  "../frontend/src/contracts/contracts.json"
+  "../../frontend/src/contracts/contracts.json"
 );
 
 const newContent = JSON.stringify(contractsExport, null, 2);
