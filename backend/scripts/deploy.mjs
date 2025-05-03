@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import * as dotenv from "dotenv";
 import { readFile, writeFile } from "fs/promises";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -72,5 +73,19 @@ const outputPath = path.resolve(
   "../frontend/src/contracts/contracts.json"
 );
 
-await writeFile(outputPath, JSON.stringify(contractsExport, null, 2));
-console.log(`Wrote ABI + addresses to ${outputPath}`);
+const newContent = JSON.stringify(contractsExport, null, 2);
+
+let shouldWrite = true;
+if (existsSync(outputPath)) {
+  const existing = readFileSync(outputPath, "utf-8");
+  if (existing === newContent) {
+    shouldWrite = false;
+  }
+}
+
+if (shouldWrite) {
+  await writeFile(outputPath, newContent);
+  console.log(`✅ Wrote ABI + addresses to ${outputPath}`);
+} else {
+  console.log("ℹ️ contracts.json unchanged — skipping write");
+}

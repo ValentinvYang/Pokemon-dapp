@@ -67,7 +67,7 @@ const main = async () => {
 
   const cidMap = {};
 
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 20; i++) {
     const data = await fetchPokemon(i);
 
     //Upload image from the cloned https://github.com/HybridShivam/Pokemon repo (Pokemon folder)
