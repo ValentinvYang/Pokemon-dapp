@@ -649,8 +649,8 @@
       ]
     },
     "C:\\Users\\Valentin Yang\\Desktop\\ETH\\Decentralized Finance\\pokemon-dapp\\backend\\contracts\\TradingContract.sol": {
-      "lastModificationDate": 1746343699725,
-      "contentHash": "3e469e5e44e48da019976aeb9a39a46a",
+      "lastModificationDate": 1746366935044,
+      "contentHash": "4a3150be742b4beec197b67d89cf5b99",
       "sourceName": "contracts/TradingContract.sol",
       "solcConfig": {
         "version": "0.8.28",
@@ -679,7 +679,9 @@
       "imports": [
         "@openzeppelin/contracts/token/ERC721/IERC721.sol",
         "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol",
-        "@openzeppelin/contracts/utils/ReentrancyGuard.sol"
+        "@openzeppelin/contracts/utils/ReentrancyGuard.sol",
+        "@openzeppelin/contracts/access/Ownable.sol",
+        "@openzeppelin/contracts/utils/Pausable.sol"
       ],
       "versionPragmas": [
         "^0.8.0"
@@ -722,6 +724,44 @@
       ],
       "artifacts": [
         "ReentrancyGuard"
+      ]
+    },
+    "C:\\Users\\Valentin Yang\\Desktop\\ETH\\Decentralized Finance\\pokemon-dapp\\node_modules\\@openzeppelin\\contracts\\utils\\Pausable.sol": {
+      "lastModificationDate": 1743004270403,
+      "contentHash": "24e52f6ef3868e6fca664a423140bee9",
+      "sourceName": "@openzeppelin/contracts/utils/Pausable.sol",
+      "solcConfig": {
+        "version": "0.8.28",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../utils/Context.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "Pausable"
       ]
     }
   }

@@ -4,8 +4,15 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract TradingContract is ReentrancyGuard, IERC721Receiver {
+contract TradingContract is
+  ReentrancyGuard,
+  IERC721Receiver,
+  Ownable,
+  Pausable
+{
   struct Listing {
     address seller;
     uint256 pokemonId;
@@ -41,7 +48,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   event TokenReceived(address operator, address from, uint256 tokenId);
   event RewardPaid(address finalizer, uint256 rewardAmount);
 
-  constructor(address _pokemonContract) {
+  constructor(address _pokemonContract) Ownable(msg.sender) {
     pokemonContract = IERC721(_pokemonContract); // Address of the deployed Pokémon NFT contract
   }
 
@@ -97,7 +104,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     uint256 price,
     bool isAuction,
     uint256 auctionDuration
-  ) external payable onlyPokemonOwner(pokemonId) {
+  ) external payable onlyPokemonOwner(pokemonId) whenNotPaused {
     require(price > 0, "Price must be larger than zero");
 
     if (isAuction) {
@@ -132,7 +139,9 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   }
 
   //Function to buy Pokemon for a fixed price
-  function buyPokemon(uint256 pokemonId) external payable nonReentrant {
+  function buyPokemon(
+    uint256 pokemonId
+  ) external payable nonReentrant whenNotPaused {
     Listing storage listing = listings[pokemonId];
     require(
       !listing.isAuction,
@@ -140,6 +149,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     );
     require(msg.value >= listing.price, "Insufficient funds to purchase");
     require(listing.seller != address(0), "Listing does not exist");
+    require(listing.seller != msg.sender, "Cannot buy your own listing");
 
     //Transfer Pokemon to buyer and funds to seller:
     pokemonContract.safeTransferFrom(address(this), msg.sender, pokemonId);
@@ -157,15 +167,17 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   //Function to place a bid on a Pokemon listed for auction
   function placeBid(
     uint256 pokemonId
-  ) external payable auctionOngoing(pokemonId) {
+  ) external payable auctionOngoing(pokemonId) whenNotPaused {
     Listing storage listing = listings[pokemonId];
 
     uint256 minIncrement = (listing.highestBid * 5) / 100; //5% of current highest bid
-    uint256 minimumBid = listing.highestBid + minIncrement;
+    uint256 minimumBid = listing.highestBid == 0
+      ? listing.price
+      : listing.highestBid + minIncrement;
 
     require(
       msg.value >= minimumBid,
-      "Bid must be at least 5% higher than previous bid"
+      "Bid must be at least 5% higher than previous bid or match starting price"
     );
 
     require(
@@ -191,7 +203,9 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
   }
 
   //Finalize auction and transfer Pokemon to highest bidder
-  function finalizeAuction(uint256 pokemonId) external nonReentrant {
+  function finalizeAuction(
+    uint256 pokemonId
+  ) external nonReentrant whenNotPaused {
     Listing storage listing = listings[pokemonId];
     require(listing.isAuction, "Not an auction");
     require(block.timestamp >= listing.auctionEndTime, "Auction not ended");
@@ -219,7 +233,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
 
     //Send reward to the finalizer
     if (rewardAmount > 0) {
-      payable(msg.sender).transfer(rewardAmount);
+      pendingRefunds[msg.sender] += rewardAmount;
       emit RewardPaid(msg.sender, rewardAmount);
     }
 
@@ -233,7 +247,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
 
   function removeListing(
     uint256 pokemonId
-  ) external onlyListingSeller(pokemonId) nonReentrant {
+  ) external onlyListingSeller(pokemonId) nonReentrant whenNotPaused {
     Listing storage listing = listings[pokemonId];
     require(listing.seller != address(0), "Listing does not exist");
 
@@ -259,7 +273,7 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
     _removeListingById(pokemonId);
   }
 
-  function withdrawRefund() external nonReentrant {
+  function withdrawRefund() external nonReentrant whenNotPaused {
     uint256 amount = pendingRefunds[msg.sender];
     require(amount > 0, "No refund available");
 
@@ -346,5 +360,14 @@ contract TradingContract is ReentrancyGuard, IERC721Receiver {
 
   function getSellerOf(uint256 tokenId) external view returns (address) {
     return listings[tokenId].seller;
+  }
+
+  //Emergency Stop Functionality
+  function pause() external onlyOwner {
+    _pause();
+  }
+
+  function unpause() external onlyOwner {
+    _unpause();
   }
 }
