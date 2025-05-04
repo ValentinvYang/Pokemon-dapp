@@ -26,7 +26,13 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
 
       setLoading(true);
 
-      const priceInWei = ethers.parseEther(price);
+      let priceInWei;
+      try {
+        priceInWei = ethers.parseEther(price);
+      } catch (err) {
+        alert("Invalid price input. Please use a number like 1.5");
+        return;
+      }
 
       // Step 1: Approve trading contract to transfer the token
       const approveTx = await pokemonContract.approve(
@@ -42,7 +48,7 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
         isAuction,
         isAuction ? Number(auctionDuration) : 0,
         {
-          value: isAuction ? ethers.parseEther("0.01") : 0n, //Finalizer fee
+          value: isAuction ? ethers.parseEther("0.0015") : 0n, //FINALIZER_FEE
         }
       );
       await tx.wait();
@@ -74,7 +80,7 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
         ) : (
           <>
             <input
-              type="number"
+              type="text"
               placeholder="Enter price in ETH"
               className="w-full p-2 border border-gray-300 rounded"
               value={price}
@@ -104,14 +110,14 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
         ) : (
           <>
             <input
-              type="number"
+              type="text"
               placeholder="Enter starting price in ETH"
               className="w-full p-2 border border-gray-300 rounded"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
             />
             <input
-              type="number"
+              type="text"
               placeholder="Enter auction duration (seconds >= 100)"
               className="w-full p-2 border border-gray-300 rounded"
               value={auctionDuration}

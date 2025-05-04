@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import NavBar from "./components/NavBar";
 import ConnectWallet from "./components/ConnectWallet";
+
+//Views:
 import MarketPlace from "./components/MarketPlace";
 import Gallery from "./components/Gallery";
 import MyPokemon from "./components/MyPokemon";
+import MyRefunds from "./components/MyRefunds";
 
 //Contracts:
 import { ContractContext } from "./contexts/AppContracts";
@@ -108,8 +111,9 @@ function App() {
 
       {/* Content switches based on selected view */}
       {view === "gallery" && <Gallery />}
-      {view === "marketplace" && <MarketPlace />}
-      {view === "mypokemon" && <MyPokemon />}
+      {view === "marketplace" && <MarketPlace setView={setView} />}
+      {view === "mypokemon" && <MyPokemon setView={setView} />}
+      {view === "myrefunds" && <MyRefunds />}
     </ContractContext.Provider>
   );
 }

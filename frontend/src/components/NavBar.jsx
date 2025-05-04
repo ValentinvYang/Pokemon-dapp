@@ -77,9 +77,17 @@ export default function NavBar({ isConnected, view, setView }) {
           My Pokemon
         </a>
 
-        {/* Additional Links Placeholder*/}
-        <a href="#activity" className="hover:text-orange-600 transition">
-          Activity
+        <a
+          href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            setView("myrefunds");
+          }}
+          className={`hover:text-orange-600 transition ${
+            view === "myrefunds" ? "text-orange-600 font-semibold" : ""
+          }`}
+        >
+          My Refunds
         </a>
 
         {/* Wallet Status / Button */}
