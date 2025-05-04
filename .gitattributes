@@ -1,0 +1,2 @@
+# Set LF as standard and auto convert CRLF -> LF on commit
+* text=auto
