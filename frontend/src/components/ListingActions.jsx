@@ -3,7 +3,6 @@ import { ethers } from "ethers";
 import { useState, useEffect } from "react";
 import { ContractContext } from "../contexts/AppContracts";
 import { keccak256, solidityPacked, toUtf8Bytes } from "ethers";
-import AuctionActions from "./AuctionActions";
 
 export default function ListingActions({
   isOwner,
