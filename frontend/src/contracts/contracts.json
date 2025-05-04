@@ -1,6 +1,6 @@
 {
   "PokemonContract": {
-    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "address": "0x9A676e781A523b5d0C0e43731313A708CB607508",
     "abi": [
       {
         "inputs": [
@@ -662,7 +662,7 @@
     ]
   },
   "TradingContract": {
-    "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "address": "0x0B306BF915C4d645ff596e518fAf3F9669b97016",
     "abi": [
       {
         "inputs": [
@@ -674,6 +674,38 @@
         ],
         "stateMutability": "nonpayable",
         "type": "constructor"
+      },
+      {
+        "inputs": [],
+        "name": "EnforcedPause",
+        "type": "error"
+      },
+      {
+        "inputs": [],
+        "name": "ExpectedPause",
+        "type": "error"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          }
+        ],
+        "name": "OwnableInvalidOwner",
+        "type": "error"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "OwnableUnauthorizedAccount",
+        "type": "error"
       },
       {
         "inputs": [],
@@ -690,9 +722,22 @@
             "type": "uint256"
           },
           {
-            "indexed": false,
+            "indexed": true,
+            "internalType": "address",
+            "name": "bidder",
+            "type": "address"
+          }
+        ],
+        "name": "BidCommitted",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
             "internalType": "uint256",
-            "name": "bidAmount",
+            "name": "pokemonId",
             "type": "uint256"
           },
           {
@@ -700,9 +745,15 @@
             "internalType": "address",
             "name": "bidder",
             "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
           }
         ],
-        "name": "BidPlaced",
+        "name": "BidRevealed",
         "type": "event"
       },
       {
@@ -741,6 +792,38 @@
           }
         ],
         "name": "ListingRemoved",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "previousOwner",
+            "type": "address"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "OwnershipTransferred",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "Paused",
         "type": "event"
       },
       {
@@ -810,6 +893,19 @@
           }
         ],
         "name": "TokenReceived",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [
+          {
+            "indexed": false,
+            "internalType": "address",
+            "name": "account",
+            "type": "address"
+          }
+        ],
+        "name": "Unpaused",
         "type": "event"
       },
       {
@@ -901,6 +997,92 @@
             "internalType": "uint256",
             "name": "pokemonId",
             "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "commitHash",
+            "type": "bytes32"
+          }
+        ],
+        "name": "commitBid",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "name": "commitments",
+        "outputs": [
+          {
+            "internalType": "bytes32",
+            "name": "commitHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deposit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "revealed",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "revealedAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "commitTime",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "name": "committedBidders",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "pokemonId",
+            "type": "uint256"
           }
         ],
         "name": "finalizeAuction",
@@ -940,13 +1122,8 @@
                 "type": "uint256"
               },
               {
-                "internalType": "address",
-                "name": "highestBidder",
-                "type": "address"
-              },
-              {
                 "internalType": "uint256",
-                "name": "highestBid",
+                "name": "finalizeDelay",
                 "type": "uint256"
               }
             ],
@@ -964,28 +1141,28 @@
             "internalType": "uint256",
             "name": "pokemonId",
             "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "bidder",
+            "type": "address"
           }
         ],
-        "name": "getAuctionState",
+        "name": "getCommitment",
         "outputs": [
           {
+            "internalType": "bytes32",
+            "name": "commitHash",
+            "type": "bytes32"
+          },
+          {
             "internalType": "bool",
-            "name": "isActive",
+            "name": "revealed",
             "type": "bool"
           },
           {
             "internalType": "uint256",
-            "name": "timeRemaining",
-            "type": "uint256"
-          },
-          {
-            "internalType": "address",
-            "name": "highestBidder",
-            "type": "address"
-          },
-          {
-            "internalType": "uint256",
-            "name": "highestBid",
+            "name": "revealedAmount",
             "type": "uint256"
           }
         ],
@@ -1030,19 +1207,38 @@
                 "type": "uint256"
               },
               {
-                "internalType": "address",
-                "name": "highestBidder",
-                "type": "address"
-              },
-              {
                 "internalType": "uint256",
-                "name": "highestBid",
+                "name": "finalizeDelay",
                 "type": "uint256"
               }
             ],
             "internalType": "struct TradingContract.Listing",
             "name": "",
             "type": "tuple"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "pokemonId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "bidder",
+            "type": "address"
+          }
+        ],
+        "name": "getRevealed",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "revealed",
+            "type": "bool"
           }
         ],
         "stateMutability": "view",
@@ -1105,19 +1301,38 @@
                 "type": "uint256"
               },
               {
-                "internalType": "address",
-                "name": "highestBidder",
-                "type": "address"
-              },
-              {
                 "internalType": "uint256",
-                "name": "highestBid",
+                "name": "finalizeDelay",
                 "type": "uint256"
               }
             ],
             "internalType": "struct TradingContract.Listing[]",
             "name": "",
             "type": "tuple[]"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "pokemonId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "bidder",
+            "type": "address"
+          }
+        ],
+        "name": "hasCommitted",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
           }
         ],
         "stateMutability": "view",
@@ -1163,6 +1378,11 @@
             "internalType": "uint256",
             "name": "auctionDuration",
             "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "_finalizeDelay",
+            "type": "uint256"
           }
         ],
         "name": "listPokemon",
@@ -1206,13 +1426,8 @@
             "type": "uint256"
           },
           {
-            "internalType": "address",
-            "name": "highestBidder",
-            "type": "address"
-          },
-          {
             "internalType": "uint256",
-            "name": "highestBid",
+            "name": "finalizeDelay",
             "type": "uint256"
           }
         ],
@@ -1254,6 +1469,39 @@
         "type": "function"
       },
       {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+          {
+            "internalType": "address",
+            "name": "",
+            "type": "address"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "pause",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "paused",
+        "outputs": [
+          {
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
         "inputs": [
           {
             "internalType": "address",
@@ -1270,19 +1518,6 @@
           }
         ],
         "stateMutability": "view",
-        "type": "function"
-      },
-      {
-        "inputs": [
-          {
-            "internalType": "uint256",
-            "name": "pokemonId",
-            "type": "uint256"
-          }
-        ],
-        "name": "placeBid",
-        "outputs": [],
-        "stateMutability": "payable",
         "type": "function"
       },
       {
@@ -1307,6 +1542,56 @@
           }
         ],
         "name": "removeListing",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "renounceOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "uint256",
+            "name": "pokemonId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "string",
+            "name": "salt",
+            "type": "string"
+          }
+        ],
+        "name": "revealBid",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "address",
+            "name": "newOwner",
+            "type": "address"
+          }
+        ],
+        "name": "transferOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "unpause",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"

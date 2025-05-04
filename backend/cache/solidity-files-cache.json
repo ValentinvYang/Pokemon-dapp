@@ -649,8 +649,8 @@
       ]
     },
     "C:\\Users\\Valentin Yang\\Desktop\\ETH\\Decentralized Finance\\pokemon-dapp\\backend\\contracts\\TradingContract.sol": {
-      "lastModificationDate": 1746366935044,
-      "contentHash": "4a3150be742b4beec197b67d89cf5b99",
+      "lastModificationDate": 1746385752232,
+      "contentHash": "cef87ded4398a32b6ebb82e67677b076",
       "sourceName": "contracts/TradingContract.sol",
       "solcConfig": {
         "version": "0.8.28",

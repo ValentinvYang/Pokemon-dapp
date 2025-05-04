@@ -10,6 +10,7 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
   const [hideAuctionButton, setHideAuctionButton] = useState(false);
   const [price, setPrice] = useState("");
   const [auctionDuration, setAuctionDuration] = useState("");
+  const [finalizeDelay, setFinalizeDelay] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleListing = async (isAuction) => {
@@ -24,13 +25,18 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
         return;
       }
 
+      if (isAuction && Number(finalizeDelay) < 120) {
+        alert("Finalize delay has to be larger than 100");
+        return;
+      }
+
       setLoading(true);
 
       let priceInWei;
       try {
         priceInWei = ethers.parseEther(price);
       } catch (err) {
-        alert("Invalid price input. Please use a number like 1.5");
+        alert("Invalid price input. Please use a valid number");
         return;
       }
 
@@ -47,6 +53,7 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
         priceInWei,
         isAuction,
         isAuction ? Number(auctionDuration) : 0,
+        isAuction ? Number(finalizeDelay) : 0,
         {
           value: isAuction ? ethers.parseEther("0.0015") : 0n, //FINALIZER_FEE
         }
@@ -111,7 +118,7 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
           <>
             <input
               type="text"
-              placeholder="Enter starting price in ETH"
+              placeholder="This is the minimum bid in ETH."
               className="w-full p-2 border border-gray-300 rounded"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
@@ -122,6 +129,13 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
               className="w-full p-2 border border-gray-300 rounded"
               value={auctionDuration}
               onChange={(e) => setAuctionDuration(e.target.value)}
+            />
+            <input
+              type="text"
+              placeholder="Enter reveal window duration (seconds >= 120)"
+              className="w-full p-2 border border-gray-300 rounded"
+              value={finalizeDelay}
+              onChange={(e) => setFinalizeDelay(e.target.value)}
             />
             <button
               onClick={() => handleListing(true)}

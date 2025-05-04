@@ -15,6 +15,7 @@ describe("TradingContract", function () {
   let bulbasaurCid;
   let charmanderCid;
   const FINALIZER_FEE = ethers.parseEther("0.0015");
+  const revealWindow = 120;
 
   beforeEach(async function () {
     [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
@@ -82,7 +83,7 @@ describe("TradingContract", function () {
         .approve(tradingContract.target, bulbasaurId);
       await tradingContract
         .connect(owner)
-        .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0);
+        .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0, 0);
 
       const listing = await tradingContract.listings(bulbasaurId);
       expect(listing.price).to.equal(ethers.parseEther("1"));
@@ -97,15 +98,21 @@ describe("TradingContract", function () {
         .approve(tradingContract.target, bulbasaurId);
       await tradingContract
         .connect(owner)
-        .listPokemon(bulbasaurId, ethers.parseEther("1"), true, 3600, {
-          value: FINALIZER_FEE,
-        });
+        .listPokemon(
+          bulbasaurId,
+          ethers.parseEther("1"),
+          true,
+          3600,
+          revealWindow,
+          {
+            value: FINALIZER_FEE,
+          }
+        );
 
       const listing = await tradingContract.listings(bulbasaurId);
       expect(listing.price).to.equal(ethers.parseEther("1"));
       expect(listing.seller).to.equal(owner.address);
       expect(listing.isAuction).to.equal(true);
-      expect(listing.highestBidder).to.equal(ZeroAddress);
       const block = await ethers.provider.getBlock("latest");
       expect(listing.auctionEndTime).to.be.greaterThan(block.timestamp);
     });
@@ -115,7 +122,13 @@ describe("TradingContract", function () {
       await expect(
         tradingContract
           .connect(addr1)
-          .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0)
+          .listPokemon(
+            bulbasaurId,
+            ethers.parseEther("1"),
+            false,
+            0,
+            revealWindow
+          )
       ).to.be.reverted;
     });
   });
@@ -131,7 +144,7 @@ describe("TradingContract", function () {
         .approve(tradingContract.target, bulbasaurId);
       await tradingContract
         .connect(owner)
-        .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0);
+        .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0, 0);
     });
 
     it("Should allow buyer to buy a Pokemon at the listed price", async function () {
@@ -189,7 +202,7 @@ describe("TradingContract", function () {
         .approve(tradingContract.target, bulbasaurId);
       await tradingContract
         .connect(owner)
-        .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0);
+        .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0, 0);
 
       // Mint and list a auction Pokemon before each test
       await pokemonContract.connect(owner).mintPokemon(charmanderCid);
@@ -198,7 +211,7 @@ describe("TradingContract", function () {
         .approve(tradingContract.target, charmanderId);
       await tradingContract
         .connect(owner)
-        .listPokemon(charmanderId, ethers.parseEther("1"), false, 0);
+        .listPokemon(charmanderId, ethers.parseEther("1"), false, 0, 0);
     });
 
     it("Should allow seller to remove fixed price listing as well as auction listing", async function () {
@@ -237,6 +250,12 @@ describe("TradingContract", function () {
     const auctionDuration = 3600; //Set auctionDuration default to 1h
     const startingPrice = 1;
 
+    const firstBidAmount = ethers.parseEther(startingPrice.toString());
+    const salt = "mySalt";
+    const commitHash = ethers.keccak256(
+      ethers.solidityPacked(["uint256", "string"], [firstBidAmount, salt])
+    );
+
     beforeEach(async function () {
       // Mint and list Pokemon for auction before each test
       await pokemonContract.connect(owner).mintPokemon(bulbasaurCid);
@@ -250,55 +269,69 @@ describe("TradingContract", function () {
           ethers.parseEther(startingPrice.toString()),
           true,
           auctionDuration,
+          revealWindow,
           { value: FINALIZER_FEE }
         );
     });
 
-    it("Should allow bidding on Pokemon that is listed for auction", async function () {
-      //addr1 bids on the listed Pokemon (listed in the beforeEach)
-      const bidAmount = ethers.parseEther((startingPrice + 0.1).toString());
+    it("Should allow commiting a bidding on Pokemon that is listed for auction", async function () {
+      //addr1 commits a bid on the listed Pokemon (listed in the beforeEach)
       await expect(
         tradingContract
           .connect(addr1)
-          .placeBid(bulbasaurId, { value: bidAmount })
+          .commitBid(bulbasaurId, commitHash, { value: firstBidAmount })
       )
-        .to.emit(tradingContract, "BidPlaced")
-        .withArgs(bulbasaurId, bidAmount, addr1.address);
+        .to.emit(tradingContract, "BidCommitted")
+        .withArgs(bulbasaurId, addr1.address);
 
-      const listing = await tradingContract.listings(bulbasaurId);
-      expect(listing.highestBid).to.equal(bidAmount);
-      expect(listing.highestBidder).to.equal(addr1.address);
+      //Verify commitment is stored (if accessible)
+      const commitment = await tradingContract.getCommitment(
+        bulbasaurId,
+        addr1.address
+      );
+
+      expect(commitment.commitHash).to.equal(commitHash);
+      expect(commitment.revealed).to.equal(false);
     });
 
     it("Should prevent bidding on own listing", async function () {
       //addr1 bids on the listed Pokemon (listed in the beforeEach)
-      const bidAmount = ethers.parseEther((startingPrice + 0.1).toString());
       await expect(
         tradingContract
           .connect(owner)
-          .placeBid(bulbasaurId, { value: bidAmount })
+          .commitBid(bulbasaurId, commitHash, { value: firstBidAmount })
       ).to.be.revertedWith("Seller cannot bid on their own listing");
     });
 
     it("Should allow auction to be finalized if expired, pay finalizer the reward, send Pokemon to highest bidder", async function () {
-      //addr1 places a bid on the listed auction
-      const bidAmount = ethers.parseEther((startingPrice + 0.1).toString());
+      //addr1 commits a bid on the listed auction
       await expect(
-        tradingContract.connect(addr1).placeBid(bulbasaurId, {
-          value: bidAmount,
+        tradingContract.connect(addr1).commitBid(bulbasaurId, commitHash, {
+          value: firstBidAmount,
         })
       )
-        .to.emit(tradingContract, "BidPlaced")
-        .withArgs(bulbasaurId, bidAmount, addr1.address);
+        .to.emit(tradingContract, "BidCommitted")
+        .withArgs(bulbasaurId, addr1.address);
 
       //Increase time to simulate auction expiration
-      await ethers.provider.send("evm_increaseTime", [auctionDuration]);
+      await ethers.provider.send("evm_increaseTime", [
+        auctionDuration + revealWindow,
+      ]);
       await ethers.provider.send("evm_mine", []);
+
+      //addr1 reveals their bid
+      await expect(
+        tradingContract
+          .connect(addr1)
+          .revealBid(bulbasaurId, firstBidAmount, salt)
+      )
+        .to.emit(tradingContract, "BidRevealed")
+        .withArgs(bulbasaurId, addr1.address, firstBidAmount);
 
       //addr2 finalizes auction
       await expect(tradingContract.connect(addr2).finalizeAuction(bulbasaurId))
         .to.emit(tradingContract, "PokemonSold")
-        .withArgs(bulbasaurId, bidAmount, addr1.address)
+        .withArgs(bulbasaurId, firstBidAmount, addr1.address)
         .to.emit(tradingContract, "RewardPaid")
         .withArgs(addr2.address, FINALIZER_FEE);
 
@@ -311,56 +344,31 @@ describe("TradingContract", function () {
       expect(newOwner).to.equal(addr1.address);
     });
 
+    it("Should prevent finalizing if reveal window is still open", async function () {
+      //Increase time to end of auction but still reveal window open
+      await ethers.provider.send("evm_increaseTime", [auctionDuration]);
+      await ethers.provider.send("evm_mine", []);
+
+      //Try finalizing
+      await expect(
+        tradingContract.connect(owner).finalizeAuction(bulbasaurId)
+      ).to.be.revertedWith("Cannot finalize yet - waiting for reveal window");
+    });
+
     it("Should fail to place a bid lower than the starting price", async function () {
       //Bid lower than starting price should be reverted
       await expect(
-        tradingContract.connect(addr1).placeBid(bulbasaurId, {
+        tradingContract.connect(addr1).commitBid(bulbasaurId, commitHash, {
           value: ethers.parseEther((startingPrice - 0.1).toString()),
         })
-      ).to.be.revertedWith(
-        "Bid must be at least 5% higher than previous bid or match starting price"
-      );
-    });
-
-    it("Should fail to place a bid less than 5% higher than previous bid", async function () {
-      //First addr1 makes a valid bid
-      await expect(
-        tradingContract.connect(addr1).placeBid(bulbasaurId, {
-          value: ethers.parseEther(startingPrice.toString()),
-        })
-      )
-        .to.emit(tradingContract, "BidPlaced")
-        .withArgs(
-          bulbasaurId,
-          ethers.parseEther(startingPrice.toString()),
-          addr1.address
-        );
-
-      //addr2 tries to bid the same amount:
-      await expect(
-        tradingContract.connect(addr2).placeBid(bulbasaurId, {
-          value: ethers.parseEther(startingPrice.toString()),
-        })
-      ).to.be.revertedWith(
-        "Bid must be at least 5% higher than previous bid or match starting price"
-      );
-
-      //addr2 tries to bid less than 5% more than previous bid:
-      const previousBid = ethers.parseEther(startingPrice.toString());
-      const tooLowIncrement = (previousBid * 104n) / 100n; // 4% more, still too low
-
-      await expect(
-        tradingContract.connect(addr2).placeBid(bulbasaurId, {
-          value: tooLowIncrement,
-        })
-      ).to.be.revertedWith(
-        "Bid must be at least 5% higher than previous bid or match starting price"
-      );
+      ).to.be.revertedWith("Bid must be at least minimum price");
     });
 
     it("Should send listed Pokemon back to seller if no one placed a bid and auction is finalized", async function () {
       //Increase time to simulate auction expiration
-      await ethers.provider.send("evm_increaseTime", [auctionDuration]);
+      await ethers.provider.send("evm_increaseTime", [
+        auctionDuration + revealWindow,
+      ]);
       await ethers.provider.send("evm_mine", []);
 
       //Let owner finalize auction
@@ -376,42 +384,95 @@ describe("TradingContract", function () {
       expect(newOwner).to.equal(owner.address);
     });
 
-    it("Should store pending refund for addr1 after being outbid by addr2", async function () {
+    it("Should store pending refund for all previous bidders after auction is finalized", async function () {
+      const secondBidAmount = ethers.parseEther(
+        (startingPrice + 0.2).toString()
+      );
+      const salt1 = "salt1";
+      const salt2 = "salt2";
+
+      const commitHash1 = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [firstBidAmount, salt1])
+      );
+      const commitHash2 = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [secondBidAmount, salt2])
+      );
+
       // addr1 places a bid
-      const firstBidAmount = ethers.parseEther(startingPrice.toString());
-      await tradingContract.connect(addr1).placeBid(bulbasaurId, {
+      await tradingContract.connect(addr1).commitBid(bulbasaurId, commitHash1, {
         value: firstBidAmount,
       });
 
       // addr2 places a higher bid
-      const secondBidAmount = ethers.parseEther(
-        (startingPrice + 0.1).toString()
-      );
-      await tradingContract.connect(addr2).placeBid(bulbasaurId, {
+      await tradingContract.connect(addr2).commitBid(bulbasaurId, commitHash2, {
         value: secondBidAmount,
       });
 
-      // Check if addr1 has a pending refund of amount firstBidAmount
+      // Fast-forward time to after auction ends
+      await ethers.provider.send("evm_increaseTime", [
+        auctionDuration + revealWindow,
+      ]);
+      await ethers.provider.send("evm_mine", []);
+
+      // Reveal both bids
+      await tradingContract
+        .connect(addr1)
+        .revealBid(bulbasaurId, firstBidAmount, salt1);
+      await tradingContract
+        .connect(addr2)
+        .revealBid(bulbasaurId, secondBidAmount, salt2);
+
+      // Finalize auction
+      await tradingContract.connect(addr3).finalizeAuction(bulbasaurId);
+
+      // addr1 should have a pending refund equal to their bid
       const refund = await tradingContract.pendingRefunds(addr1.address);
       expect(refund).to.equal(firstBidAmount);
     });
 
     it("Should allow user to withdraw refunds", async function () {
+      //SETUP: addr1 gets outbid by addr2 in the auction and then withdraws refunds
+      const secondBidAmount = ethers.parseEther(
+        (startingPrice + 0.2).toString()
+      );
+      const salt1 = "salt1";
+      const salt2 = "salt2";
+
+      const commitHash1 = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [firstBidAmount, salt1])
+      );
+      const commitHash2 = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [secondBidAmount, salt2])
+      );
+
       // addr1 places a bid
-      const firstBidAmount = ethers.parseEther(startingPrice.toString());
-      await tradingContract.connect(addr1).placeBid(bulbasaurId, {
+      await tradingContract.connect(addr1).commitBid(bulbasaurId, commitHash1, {
         value: firstBidAmount,
       });
 
       // addr2 places a higher bid
-      const secondBidAmount = ethers.parseEther(
-        (startingPrice + 0.1).toString()
-      );
-      await tradingContract.connect(addr2).placeBid(bulbasaurId, {
+      await tradingContract.connect(addr2).commitBid(bulbasaurId, commitHash2, {
         value: secondBidAmount,
       });
 
-      // Capture addr1's balance before withdrawal
+      // Fast-forward time to after auction ends
+      await ethers.provider.send("evm_increaseTime", [
+        auctionDuration + revealWindow,
+      ]);
+      await ethers.provider.send("evm_mine", []);
+
+      // Reveal both bids
+      await tradingContract
+        .connect(addr1)
+        .revealBid(bulbasaurId, firstBidAmount, salt1);
+      await tradingContract
+        .connect(addr2)
+        .revealBid(bulbasaurId, secondBidAmount, salt2);
+
+      // Finalize auction
+      await tradingContract.connect(addr3).finalizeAuction(bulbasaurId);
+
+      // Capture addr1's and addr3's balance before withdrawal
       const balanceBefore = await ethers.provider.getBalance(addr1.address);
 
       // Withdraw refund from contract
@@ -431,45 +492,112 @@ describe("TradingContract", function () {
       );
     });
 
-    it("should allow multiple increasing bids and correctly track refunds", async function () {
-      let currentBid = ethers.parseEther(startingPrice.toString());
+    it("Should refund users that forget to reveal", async function () {
+      //SETUP: addr1 and addr2 commit bids but only addr1 reveals
+      const secondBidAmount = ethers.parseEther(
+        (startingPrice + 0.2).toString()
+      );
+      const salt1 = "salt1";
+      const salt2 = "salt2";
 
+      const commitHash1 = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [firstBidAmount, salt1])
+      );
+      const commitHash2 = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [secondBidAmount, salt2])
+      );
+
+      // addr1 places a bid
+      await tradingContract.connect(addr1).commitBid(bulbasaurId, commitHash1, {
+        value: firstBidAmount,
+      });
+
+      // addr2 places a higher bid
+      await tradingContract.connect(addr2).commitBid(bulbasaurId, commitHash2, {
+        value: secondBidAmount,
+      });
+
+      // Fast-forward time to after auction ends
+      await ethers.provider.send("evm_increaseTime", [
+        auctionDuration + revealWindow,
+      ]);
+      await ethers.provider.send("evm_mine", []);
+
+      // Only addr1 reveals bid
+      await tradingContract
+        .connect(addr1)
+        .revealBid(bulbasaurId, firstBidAmount, salt1);
+
+      // Finalize auction
+      await tradingContract.connect(addr3).finalizeAuction(bulbasaurId);
+
+      // Confirm pending refund is now zero
+      const refundNoReveal = await tradingContract.pendingRefunds(
+        addr2.address
+      );
+      expect(refundNoReveal).to.equal(secondBidAmount);
+
+      //Confirm addr1 owns the Pokemon
+      const newOwner = await pokemonContract
+        .connect(owner)
+        .ownerOf(bulbasaurId);
+      expect(newOwner).to.equal(addr1.address);
+    });
+
+    it("should allow multiple bids with same amount and correctly determine winner based on commit time", async function () {
       const signers = await ethers.getSigners();
-      //Use 15 different accounts that all bid almost at the same time
+      //Use 15 different accounts that all bid same amount
       const bidders = signers.slice(6, 20);
 
       for (let i = 0; i < bidders.length; i++) {
         const bidder = bidders[i];
 
-        // Calculate 5% increment
-        const bidIncrement = (currentBid * 5n) / 100n;
-        currentBid = currentBid + bidIncrement;
+        // Commit the bid
+        await tradingContract
+          .connect(bidder)
+          .commitBid(bulbasaurId, commitHash, {
+            value: firstBidAmount,
+          });
 
-        // Place the bid
-        await tradingContract.connect(bidder).placeBid(bulbasaurId, {
-          value: currentBid,
-        });
-
-        // Check highest bidder and bid
-        const listing = await tradingContract.listings(bulbasaurId);
-        expect(listing.highestBidder).to.equal(bidder.address);
-        expect(listing.highestBid).to.equal(currentBid);
-
-        // Check if previous bidder has refund
-        if (i > 0) {
-          const previousBidder = bidders[i - 1];
-          const refund = await tradingContract.pendingRefunds(
-            previousBidder.address
-          );
-          expect(refund).to.equal(currentBid - bidIncrement); // last bid amount
-        }
+        // Slight delay to differentiate commit time
+        await ethers.provider.send("evm_increaseTime", [1]);
+        await ethers.provider.send("evm_mine", []);
       }
 
-      // Final check: highest bid belongs to the last bidder
-      const finalListing = await tradingContract.listings(bulbasaurId);
-      expect(finalListing.highestBidder).to.equal(
-        bidders[bidders.length - 1].address
-      );
+      // Advance time to end the auction
+      await ethers.provider.send("evm_increaseTime", [auctionDuration]);
+      await ethers.provider.send("evm_mine", []);
+
+      // Everyone reveals the same bid
+      for (let i = 0; i < bidders.length; i++) {
+        await tradingContract
+          .connect(bidders[i])
+          .revealBid(bulbasaurId, firstBidAmount, salt);
+      }
+
+      // Advance time to end of reveal window
+      await ethers.provider.send("evm_increaseTime", [revealWindow]);
+      await ethers.provider.send("evm_mine", []);
+
+      // Finalize auction
+      await expect(
+        tradingContract.connect(owner).finalizeAuction(bulbasaurId)
+      ).to.emit(tradingContract, "PokemonSold");
+
+      // Earliest committer wins
+      const winner = bidders[0]; // First committed
+      const newOwner = await pokemonContract.ownerOf(bulbasaurId);
+      expect(newOwner).to.equal(winner.address);
+
+      // Other bidders should get refund
+      for (let i = 1; i < bidders.length; i++) {
+        const refund = await tradingContract.pendingRefunds(bidders[i].address);
+        expect(refund).to.equal(firstBidAmount);
+      }
+
+      // Finalizer gets reward
+      const reward = await tradingContract.pendingRefunds(owner.address);
+      expect(reward).to.equal(FINALIZER_FEE);
     });
   });
 
@@ -492,7 +620,13 @@ describe("TradingContract", function () {
       await expect(
         tradingContract
           .connect(owner)
-          .listPokemon(0, ethers.parseEther(startingPrice.toString()), false, 0)
+          .listPokemon(
+            0,
+            ethers.parseEther(startingPrice.toString()),
+            false,
+            0,
+            0
+          )
       ).to.be.reverted;
 
       //View function should still return listings (not reverted)
@@ -507,7 +641,7 @@ describe("TradingContract", function () {
       await expect(
         tradingContract
           .connect(owner)
-          .listPokemon(0, ethers.parseEther("1"), false, 0)
+          .listPokemon(0, ethers.parseEther("1"), false, 0, 0)
       ).to.emit(tradingContract, "Listed");
     });
   });

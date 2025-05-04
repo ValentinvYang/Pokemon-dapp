@@ -19,12 +19,22 @@ contract TradingContract is
     uint256 price;
     bool isAuction;
     uint256 auctionEndTime;
-    address highestBidder;
-    uint256 highestBid;
+    uint256 finalizeDelay;
+  }
+
+  struct Commitment {
+    bytes32 commitHash;
+    uint256 deposit;
+    bool revealed;
+    uint256 revealedAmount;
+    uint256 commitTime; //for tie-breaker
   }
 
   mapping(uint256 => Listing) public listings;
   uint256[] public activeListingIds;
+
+  mapping(uint256 => mapping(address => Commitment)) public commitments;
+  mapping(uint256 => address[]) public committedBidders;
 
   //Pull payment pattern for auction bids to prevent Reentrancy and Dos attacks
   mapping(address => uint256) public pendingRefunds;
@@ -33,10 +43,11 @@ contract TradingContract is
   uint256 public constant FINALIZER_FEE = 0.0015 ether; //Approx. $3 USD assuming 1 ETH = $2000
 
   event Listed(uint256 indexed pokemonId, uint256 price, bool isAuction);
-  event BidPlaced(
+  event BidCommitted(uint256 indexed pokemonId, address indexed bidder);
+  event BidRevealed(
     uint256 indexed pokemonId,
-    uint256 bidAmount,
-    address indexed bidder
+    address indexed bidder,
+    uint256 amount
   );
   event PokemonSold(
     uint256 indexed pokemonId,
@@ -103,7 +114,8 @@ contract TradingContract is
     uint256 pokemonId,
     uint256 price,
     bool isAuction,
-    uint256 auctionDuration
+    uint256 auctionDuration,
+    uint256 _finalizeDelay
   ) external payable onlyPokemonOwner(pokemonId) whenNotPaused {
     require(price > 0, "Price must be larger than zero");
 
@@ -114,6 +126,11 @@ contract TradingContract is
         auctionDuration > 0,
         "Auction duration must be greater than zero"
       );
+
+      require(
+        _finalizeDelay >= 120,
+        "Finalize delay must be at least 120 seconds"
+      );
     }
 
     listings[pokemonId] = Listing({
@@ -122,8 +139,7 @@ contract TradingContract is
       price: price,
       isAuction: isAuction,
       auctionEndTime: isAuction ? block.timestamp + auctionDuration : 0,
-      highestBidder: address(0),
-      highestBid: 0
+      finalizeDelay: isAuction ? _finalizeDelay : 0
     });
 
     activeListingIds.push(pokemonId);
@@ -164,42 +180,59 @@ contract TradingContract is
     emit ListingRemoved(pokemonId);
   }
 
-  //Function to place a bid on a Pokemon listed for auction
-  function placeBid(
-    uint256 pokemonId
+  //Commit a bid on an auction
+  function commitBid(
+    uint256 pokemonId,
+    bytes32 commitHash
   ) external payable auctionOngoing(pokemonId) whenNotPaused {
     Listing storage listing = listings[pokemonId];
+    require(listing.isAuction, "Not an auction");
 
-    uint256 minIncrement = (listing.highestBid * 5) / 100; //5% of current highest bid
-    uint256 minimumBid = listing.highestBid == 0
-      ? listing.price
-      : listing.highestBid + minIncrement;
+    Commitment storage existing = commitments[pokemonId][msg.sender];
+    require(existing.commitHash == bytes32(0), "Already committed");
 
-    require(
-      msg.value >= minimumBid,
-      "Bid must be at least 5% higher than previous bid or match starting price"
-    );
-
-    require(
-      msg.sender != listing.highestBidder,
-      "You are already the highest bidder"
-    );
+    require(msg.value >= listing.price, "Bid must be at least minimum price");
 
     require(
       msg.sender != listing.seller,
       "Seller cannot bid on their own listing"
     );
 
-    //Refund the previous highest bidder
-    if (listing.highestBidder != address(0)) {
-      pendingRefunds[listing.highestBidder] += listing.highestBid;
-    }
+    commitments[pokemonId][msg.sender] = Commitment({
+      commitHash: commitHash,
+      deposit: msg.value,
+      revealed: false,
+      revealedAmount: 0,
+      commitTime: block.timestamp
+    });
 
-    //Update listing state
-    listing.highestBid = msg.value;
-    listing.highestBidder = msg.sender;
+    committedBidders[pokemonId].push(msg.sender);
 
-    emit BidPlaced(pokemonId, msg.value, msg.sender);
+    emit BidCommitted(pokemonId, msg.sender);
+  }
+
+  //When auction has ended, users should reveal their bid
+  function revealBid(
+    uint256 pokemonId,
+    uint256 amount,
+    string memory salt
+  ) external {
+    Listing storage listing = listings[pokemonId];
+    require(listing.isAuction, "Not an auction");
+    require(block.timestamp >= listing.auctionEndTime, "Auction not ended");
+
+    Commitment storage c = commitments[pokemonId][msg.sender];
+    require(c.commitHash != bytes32(0), "No commitment found");
+    require(!c.revealed, "Already revealed");
+    require(
+      keccak256(abi.encodePacked(amount, salt)) == c.commitHash,
+      "Invalid reveal"
+    );
+
+    c.revealed = true;
+    c.revealedAmount = amount;
+
+    emit BidRevealed(pokemonId, msg.sender, amount);
   }
 
   //Finalize auction and transfer Pokemon to highest bidder
@@ -208,12 +241,68 @@ contract TradingContract is
   ) external nonReentrant whenNotPaused {
     Listing storage listing = listings[pokemonId];
     require(listing.isAuction, "Not an auction");
-    require(block.timestamp >= listing.auctionEndTime, "Auction not ended");
+    require(
+      block.timestamp >= listing.auctionEndTime + listing.finalizeDelay,
+      "Cannot finalize yet - waiting for reveal window"
+    );
 
+    address winner;
+    address previousWinner;
+    uint256 highest = 0;
+    uint256 earliestCommit = type(uint256).max;
     uint256 rewardAmount = auctionRewards[pokemonId];
 
-    //Check if no bids were placed
-    if (listing.highestBidder == address(0)) {
+    for (uint i = 0; i < committedBidders[pokemonId].length; i++) {
+      address bidder = committedBidders[pokemonId][i];
+      Commitment storage c = commitments[pokemonId][bidder];
+
+      if (!c.revealed) {
+        //If not revealed, refund the bidder
+        pendingRefunds[bidder] += c.deposit;
+        continue;
+      }
+
+      if (c.revealedAmount > highest && c.revealedAmount <= c.deposit) {
+        // Refund old highest bidder before replacing
+        if (previousWinner != address(0)) {
+          pendingRefunds[previousWinner] += commitments[pokemonId][
+            previousWinner
+          ].deposit;
+        }
+
+        highest = c.revealedAmount;
+        winner = bidder;
+        earliestCommit = c.commitTime;
+        previousWinner = bidder;
+      } else if (
+        c.revealedAmount == highest &&
+        c.revealedAmount <= c.deposit &&
+        c.commitTime < earliestCommit
+      ) {
+        // Same amount, but earlier commit wins
+        if (previousWinner != address(0) && previousWinner != bidder) {
+          pendingRefunds[previousWinner] += commitments[pokemonId][
+            previousWinner
+          ].deposit;
+        }
+
+        winner = bidder;
+        earliestCommit = c.commitTime;
+        previousWinner = bidder;
+      } else {
+        // Not winning -> Refund
+        pendingRefunds[bidder] += c.deposit;
+      }
+    }
+
+    //First Cleanup:
+    for (uint i = 0; i < committedBidders[pokemonId].length; i++) {
+      address bidder = committedBidders[pokemonId][i];
+      delete commitments[pokemonId][bidder];
+    }
+
+    //Check if no valid bids were placed
+    if (winner == address(0)) {
       pokemonContract.safeTransferFrom(
         address(this),
         listing.seller,
@@ -222,13 +311,9 @@ contract TradingContract is
       emit PokemonSold(pokemonId, 0, listing.seller); //Emit with price 0, since no bids
     } else {
       //Transfer Pokemon to highest bidder
-      pokemonContract.safeTransferFrom(
-        address(this),
-        listing.highestBidder,
-        pokemonId
-      );
-      payable(listing.seller).transfer(listing.highestBid);
-      emit PokemonSold(pokemonId, listing.highestBid, listing.highestBidder);
+      pokemonContract.safeTransferFrom(address(this), winner, pokemonId);
+      payable(listing.seller).transfer(highest);
+      emit PokemonSold(pokemonId, highest, winner);
     }
 
     //Send reward to the finalizer
@@ -241,6 +326,7 @@ contract TradingContract is
     delete listings[pokemonId];
     _removeListingById(pokemonId);
     delete auctionRewards[pokemonId];
+    delete committedBidders[pokemonId];
 
     emit ListingRemoved(pokemonId);
   }
@@ -257,11 +343,17 @@ contract TradingContract is
         block.timestamp < listing.auctionEndTime,
         "Cannot remove listing after auction ended"
       );
-    }
 
-    //If it's an auction, refund the previous highest bidder
-    if (listing.isAuction && listing.highestBidder != address(0)) {
-      pendingRefunds[listing.highestBidder] += listing.highestBid;
+      //Refund all bidders
+      for (uint256 i = 0; i < committedBidders[pokemonId].length; i++) {
+        address bidder = committedBidders[pokemonId][i];
+        Commitment storage c = commitments[pokemonId][bidder];
+        if (c.commitHash != bytes32(0)) {
+          pendingRefunds[bidder] += c.deposit;
+          delete commitments[pokemonId][bidder];
+        }
+      }
+      delete committedBidders[pokemonId];
     }
 
     //Return Pokemon to the seller
@@ -333,29 +425,36 @@ contract TradingContract is
     return userListings;
   }
 
-  function isListed(uint256 pokemonId) public view returns (bool) {
-    return listings[pokemonId].seller != address(0);
-  }
-
-  function getAuctionState(
-    uint256 pokemonId
+  function getCommitment(
+    uint256 pokemonId,
+    address bidder
   )
     external
     view
-    returns (
-      bool isActive,
-      uint256 timeRemaining,
-      address highestBidder,
-      uint256 highestBid
-    )
+    returns (bytes32 commitHash, bool revealed, uint256 revealedAmount)
   {
-    Listing storage listing = listings[pokemonId];
-    require(listing.isAuction, "Not an auction");
+    Commitment storage c = commitments[pokemonId][bidder];
+    return (c.commitHash, c.revealed, c.revealedAmount);
+  }
 
-    isActive = block.timestamp < listing.auctionEndTime;
-    timeRemaining = isActive ? listing.auctionEndTime - block.timestamp : 0;
-    highestBidder = listing.highestBidder;
-    highestBid = listing.highestBid;
+  function getRevealed(
+    uint256 pokemonId,
+    address bidder
+  ) external view returns (bool revealed) {
+    Commitment storage c = commitments[pokemonId][bidder];
+    return c.revealed;
+  }
+
+  function hasCommitted(
+    uint256 pokemonId,
+    address bidder
+  ) external view returns (bool) {
+    Commitment storage c = commitments[pokemonId][bidder];
+    return c.commitHash != bytes32(0);
+  }
+
+  function isListed(uint256 pokemonId) public view returns (bool) {
+    return listings[pokemonId].seller != address(0);
   }
 
   function getSellerOf(uint256 tokenId) external view returns (address) {
