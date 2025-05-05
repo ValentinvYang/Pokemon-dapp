@@ -151,7 +151,14 @@ export default function ListingActions({
       await tx.wait();
 
       alert(
-        `✅ Bid committed with salt: ${salt} and bid: ${bidAmount}. Make sure to remember your salt and bid!`
+        `✅ Your bid has been committed successfully!
+      
+      📌 Details:
+      - Bid Amount: ${bidAmount} ETH
+      - Secret Salt: ${salt}
+      
+      ⚠️ Make sure to save your bid amount and salt securely. 
+      You will need them to reveal your bid later and be eligible to win the Pokémon.`
       );
       onClose?.(); //Close Modal
       onListed?.(); //Refresh MyPokemon/Marketplace/Gallery
@@ -222,7 +229,14 @@ export default function ListingActions({
           >
             Delist Pokemon
           </button>
-          <p className="mb-2 text-black-600 font-semibold">{timeLeft}</p>
+          {!isAuction ? (
+            <p className="text-sm text-gray-600 font-medium mt-2">
+              This is a fixed price listing and will remain active until
+              manually delisted.
+            </p>
+          ) : (
+            <p className="mb-2 text-black-600 font-semibold">{timeLeft}</p>
+          )}
         </>
       );
     }
@@ -235,6 +249,29 @@ export default function ListingActions({
         </p>
       );
     }
+
+    // Also allow owner to finalize after reveal window has closed
+    if (isAuction && revealWindowClosed) {
+      return (
+        <div className="space-y-4 w-full md:w-2/3 mx-auto">
+          {/* Info Message */}
+          <div className="bg-green-50 border-l-4 border-green-500 text-green-800 p-3 text-sm rounded shadow-sm">
+            <strong>🎉 Finalize Reward:</strong> You’ll earn
+            <span className="font-bold text-green-700"> 0.0015 ETH</span> for
+            finalizing this auction! Be the one to finalize and claim your
+            reward in the refunds.
+          </div>
+
+          {/* Finalize Button */}
+          <button
+            onClick={() => handleFinalize()}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg w-full"
+          >
+            {loading ? "Finalizing..." : "Finalize Auction"}
+          </button>
+        </div>
+      );
+    }
     return null; // Owner can't do anything else after auction ended
   }
 
@@ -244,7 +281,7 @@ export default function ListingActions({
       <button
         onClick={handleBuy}
         disabled={loading}
-        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg w-full"
+        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg w-full md:w-1/2"
       >
         {loading
           ? "Processing..."
@@ -259,19 +296,38 @@ export default function ListingActions({
       return (
         <>
           <p className="text-gray-700 text-center font-medium">
-            ✅ You have already committed a bid.
+            ✅ You have already committed a bid. The reveal window opens once
+            the auction has ended.
           </p>
           <p className="mb-2 text-black-600 font-semibold">{timeLeft}</p>
+          <hr className="my-1 border-gray-300" />
+          <div className="flex flex-col">
+            <span className="text-gray-600">🕒 Reveal window duration:</span>
+            <span className="font-semibold">
+              {formatSecondsToHMS(listing.finalizeDelay)}
+            </span>
+          </div>
         </>
       );
     }
 
     return (
-      <div className="space-y-3 w-full">
-        <p className="text-red-600 text-sm font-medium">
-          ⚠️ Remember your bid amount and salt — you must reveal them later or
-          lose your deposit!
-        </p>
+      <div className="space-y-4 w-full">
+        {/* Warning Message */}
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-3 text-sm rounded">
+          <strong>⚠️ Reminder:</strong> You must{" "}
+          <span className="font-bold">
+            remember your bid amount and secret salt
+          </span>
+          . If you forget to reveal your bid during the reveal window,{" "}
+          <span className="font-semibold">you will be refunded</span> — but{" "}
+          <span className="text-red-600 font-semibold">
+            you will not be eligible to win the Pokemon
+          </span>
+          .
+        </div>
+
+        {/* Bid Input */}
         <input
           type="text"
           placeholder={`Your bid (min ${ethers.formatEther(
@@ -281,13 +337,17 @@ export default function ListingActions({
           value={bidAmount}
           onChange={(e) => setBidAmount(e.target.value)}
         />
+
+        {/* Salt Input */}
         <input
           type="text"
-          placeholder="Your Secret Salt"
+          placeholder="Your secret salt"
           className="w-full p-2 border border-gray-300 rounded"
           value={salt}
           onChange={(e) => setSalt(e.target.value)}
         />
+
+        {/* Submit Button */}
         <button
           onClick={() => handleBid()}
           disabled={loading}
@@ -295,7 +355,18 @@ export default function ListingActions({
         >
           {loading ? "Submitting..." : "Commit Bid"}
         </button>
-        <p className="mb-2 text-black-600 font-semibold">{timeLeft}</p>
+
+        {/* Countdown and Reveal Info */}
+        <div className="text-sm text-gray-800 font-medium space-y-1 mt-4 leading-relaxed">
+          <p> ⏳ {timeLeft}</p>
+          <hr className="my-1 border-gray-300" />
+          <div className="flex flex-col">
+            <span className="text-gray-600">🕒 Reveal window duration:</span>
+            <span className="font-semibold">
+              {formatSecondsToHMS(listing.finalizeDelay)}
+            </span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -361,17 +432,41 @@ export default function ListingActions({
   // 5. REVEAL WINDOW CLOSED
   if (isAuction && revealWindowClosed) {
     return (
-      <button
-        onClick={() => handleFinalize()}
-        className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg w-full md:w-1/2"
-      >
-        {loading ? "Loading..." : "Finalize auction"}
-      </button>
+      <div className="space-y-4 w-full md:w-2/3 mx-auto">
+        {/* Info Message */}
+        <div className="bg-green-50 border-l-4 border-green-500 text-green-800 p-3 text-sm rounded shadow-sm">
+          <strong>🎉 Finalize Reward:</strong> You’ll earn
+          <span className="font-bold text-green-700"> 0.0015 ETH</span> for
+          finalizing this auction! Be the one to finalize and claim your reward
+          in the refunds.
+        </div>
+
+        {/* Finalize Button */}
+        <button
+          onClick={() => handleFinalize()}
+          className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg w-full"
+        >
+          {loading ? "Finalizing..." : "Finalize Auction"}
+        </button>
+      </div>
     );
   }
 }
 
-//Helper function to calculate remaining time:
+//////////////////////////////////////////////
+//HELPER FUNCTIONS:
+
+// formatting finalizeDelay
+function formatSecondsToHMS(secondsBigInt) {
+  const seconds = Number(secondsBigInt); // Convert BigInt to Number
+
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${h}h ${m}min ${s}s`;
+}
+
+// calculate remaining time:
 function useAuctionCountdown(auctionEndTime, finalizeDelay) {
   const [timeLeft, setTimeLeft] = useState("");
   const [ended, setEnded] = useState(false);

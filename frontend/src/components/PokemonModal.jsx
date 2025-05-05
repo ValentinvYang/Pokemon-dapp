@@ -4,20 +4,78 @@ import { ethers } from "ethers";
 import OwnerListingForm from "./OwnerListingForm";
 import ListingActions from "./ListingActions";
 
-//Backgrounds:
-import FireBackground from "../assets/FireBackground.png";
-import WaterBackground from "../assets/WaterBackground.png";
-import GrassBackground from "../assets/GrassBackground.png";
-import ElectricBackground from "../assets/ElectricBackground.png";
+// UTILS
+const toTitleCase = (str) =>
+  str
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
+// COLORS FOR EACH POKEMON TYPE
+const typeColors = {
+  normal: "#A8A77A",
+  fire: "#EE8130",
+  water: "#6390F0",
+  electric: "#F7D02C",
+  grass: "#7AC74C",
+  ice: "#96D9D6",
+  fighting: "#C22E28",
+  poison: "#A33EA1",
+  ground: "#E2BF65",
+  flying: "#A98FF3",
+  psychic: "#F95587",
+  bug: "#A6B91A",
+  rock: "#B6A136",
+  ghost: "#735797",
+  dragon: "#6F35FC",
+  dark: "#705746",
+  steel: "#B7B7CE",
+  fairy: "#D685AD",
+};
+
+// MAX STATS FOR A POKEMON
+const maxStats = {
+  hp: 255,
+  attack: 190,
+  defense: 250,
+  "special-attack": 194,
+  "special-defense": 250,
+  speed: 180,
+};
+
+// ATTRIBUTES DISPLAYED IN POKEMON MODAL
 function PokemonAttributes({ attributes }) {
+  const primaryType = attributes
+    .find((a) => a.trait_type === "Type")
+    ?.value?.toLowerCase();
+  const color = typeColors[primaryType] || "#ccc";
+
   return (
-    <ul className="text-sm space-y-2">
-      {attributes.map((attr, i) => (
-        <li key={i}>
-          <strong>{attr.trait_type}</strong>: {attr.value}
-        </li>
-      ))}
+    <ul className="text-sm space-y-4">
+      {attributes
+        .filter((attr) => attr.trait_type !== "Type")
+        .map((attr, i) => {
+          const max = maxStats[attr.trait_type.toLowerCase()] || 100;
+          const percentage = Math.min((attr.value / max) * 100, 100);
+
+          return (
+            <li key={i}>
+              <div className="flex justify-between">
+                <strong>{toTitleCase(attr.trait_type)}</strong>
+                <span>{attr.value}</span>
+              </div>
+              <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${percentage}%`,
+                    backgroundColor: color,
+                  }}
+                ></div>
+              </div>
+            </li>
+          );
+        })}
     </ul>
   );
 }
@@ -35,19 +93,6 @@ export default function PokemonModal({
 
   const { address: currentUser } = useContext(ContractContext);
   const isOwner = owner?.toLowerCase() === currentUser?.toLowerCase();
-
-  const primaryType = metadata.attributes
-    .find((attr) => attr.trait_type === "Type")
-    ?.value?.toLowerCase();
-
-  const typeBackground = {
-    fire: FireBackground,
-    water: WaterBackground,
-    grass: GrassBackground,
-    electric: ElectricBackground,
-  };
-
-  const backgroundImage = typeBackground[primaryType] || null;
 
   const handleBackdropClick = (e) => {
     if (e.target === e.currentTarget) {
@@ -81,18 +126,7 @@ export default function PokemonModal({
       className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center px-2 md:px-4"
       onClick={handleBackdropClick}
     >
-      <div
-        className="rounded-2xl p-6 w-full max-w-4xl h-screen md:h-[90vh] overflow-y-auto shadow-xl relative flex flex-col"
-        style={{
-          backgroundImage: backgroundImage
-            ? `linear-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.3)), url(${backgroundImage})`
-            : "none",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          backgroundColor: backgroundImage ? "rgba(255,255,255,0.9)" : "white",
-        }}
-      >
+      <div className="bg-white rounded-2xl p-6 w-full max-w-6xl h-screen md:h-[90vh] overflow-y-auto shadow-xl relative flex flex-col">
         {/* Close Button */}
         <button
           className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl"
@@ -103,14 +137,14 @@ export default function PokemonModal({
         </button>
 
         {/* Modal Content */}
-        <div className="flex flex-col gap-6 flex-grow">
+        <div className="flex flex-col gap-6 flex-grow justify-between">
           <h2 className="text-3xl font-bold text-center mt-4">
             {metadata.name.charAt(0).toUpperCase() + metadata.name.slice(1)}
           </h2>
 
-          <div className="flex flex-col md:flex-row gap-6 flex-grow">
+          <div className="flex flex-col md:flex-row gap-6 flex-grow min-h-0">
             {/* Image */}
-            <div className="w-full md:w-[65%] flex justify-center items-start">
+            <div className="w-full md:w-[65%] flex justify-center items-center flex-grow">
               <img
                 src={metadata.image}
                 alt={metadata.name}
@@ -119,8 +153,8 @@ export default function PokemonModal({
             </div>
 
             {/* Attributes */}
-            <div className="w-full md:w-[35%]">
-              <h3 className="text-xl font-semibold mb-2">Attributes</h3>
+            <div className="w-full lg:mr-16 md:mr-8 md:w-[35%] mt-4 md:mt-8 flex flex-col md:justify-center flex-grow">
+              <h3 className="text-xl font-semibold mb-2">Battle Stats</h3>
               <PokemonAttributes attributes={metadata.attributes} />
             </div>
           </div>

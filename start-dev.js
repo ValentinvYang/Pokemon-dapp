@@ -1,7 +1,7 @@
 import { spawn } from "child_process";
-import { setTimeout as wait } from "timers/promises";
 import net from "net";
 
+// Run a shell command and wait for it to complete
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const proc = spawn(command, args, {
@@ -17,7 +17,7 @@ function run(command, args, options = {}) {
   });
 }
 
-// Utility: Wait until a port is open
+// Utility: Wait until a port is open on the specified host
 async function waitForPort(port, host = "127.0.0.1", timeout = 10000) {
   const start = Date.now();
 
@@ -40,6 +40,8 @@ async function waitForPort(port, host = "127.0.0.1", timeout = 10000) {
   });
 }
 
+/////////////////////////////////////////////////
+//PROJECT SETUP LOGIC
 async function main() {
   console.log("🔧 Starting Hardhat local node...");
   const hardhatNode = spawn("npx", ["hardhat", "node"], {

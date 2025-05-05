@@ -4,10 +4,8 @@ import { ethers } from "ethers";
 
 function OwnerListingForm({ pokemonId, onClose, onListed }) {
   const { pokemonContract, tradingContract } = useContext(ContractContext);
-  const [showFormFixed, setShowFormFixed] = useState(false);
-  const [showFormAuction, setShowFormAuction] = useState(false);
-  const [hideFixedButton, setHideFixedButton] = useState(false);
-  const [hideAuctionButton, setHideAuctionButton] = useState(false);
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const [selectedType, setSelectedType] = useState(null); // 'fixed' or 'auction'
   const [price, setPrice] = useState("");
   const [auctionDuration, setAuctionDuration] = useState("");
   const [finalizeDelay, setFinalizeDelay] = useState("");
@@ -72,6 +70,85 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
   };
 
   return (
+    <div className="space-y-4 w-full md:w-2/3 mx-auto md:mt-4">
+      {!showTypeSelector ? (
+        <button
+          onClick={() => setShowTypeSelector(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg w-full"
+        >
+          Create Listing
+        </button>
+      ) : (
+        <>
+          {!selectedType && (
+            <select
+              className="w-full p-2 border border-gray-300 rounded"
+              onChange={(e) => setSelectedType(e.target.value)}
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select Listing Type
+              </option>
+              <option value="fixed">Fixed Price</option>
+              <option value="auction">Auction</option>
+            </select>
+          )}
+
+          {selectedType === "fixed" && (
+            <>
+              <input
+                type="text"
+                placeholder="Enter price in ETH"
+                className="w-full p-2 border border-gray-300 rounded"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+              <button
+                onClick={() => handleListing(false)}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg w-full disabled:opacity-50"
+              >
+                {loading ? "Listing..." : "Confirm Listing"}
+              </button>
+            </>
+          )}
+
+          {selectedType === "auction" && (
+            <>
+              <input
+                type="text"
+                placeholder="Enter minimum bid in ETH"
+                className="w-full p-2 border border-gray-300 rounded"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Enter auction duration (≥ 100 seconds)"
+                className="w-full p-2 border border-gray-300 rounded"
+                value={auctionDuration}
+                onChange={(e) => setAuctionDuration(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Enter reveal window duration (≥ 120 seconds)"
+                className="w-full p-2 border border-gray-300 rounded"
+                value={finalizeDelay}
+                onChange={(e) => setFinalizeDelay(e.target.value)}
+              />
+              <button
+                onClick={() => handleListing(true)}
+                disabled={loading}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold px-4 py-2 rounded-lg w-full disabled:opacity-50"
+              >
+                {loading ? "Listing..." : "Confirm Auction"}
+              </button>
+            </>
+          )}
+        </>
+      )}
+    </div>
+    /*
     <div className="space-y-4 w-full md:w-2/3 mx-auto">
       {!hideFixedButton &&
         (!showFormFixed ? (
@@ -147,6 +224,7 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
           </>
         ))}
     </div>
+    */
   );
 }
 
