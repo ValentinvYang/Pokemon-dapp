@@ -3,6 +3,9 @@ import { expect } from "chai";
 import hardhat from "hardhat";
 const { ethers } = hardhat;
 
+//A RUNNING HELIA LOCAL NODE IS REQUIRED FOR TESTING
+import { HELIA_TEST_BASE_URL } from "../scripts/utils/config.js";
+
 describe("PokemonContract", function () {
   let pokemonContract, owner, addr1, addr2;
 
@@ -40,7 +43,7 @@ describe("PokemonContract", function () {
         ],
       };
 
-      const res = await axios.post("http://localhost:8080/add", metadata, {
+      const res = await axios.post(`${HELIA_TEST_BASE_URL}/add`, metadata, {
         headers: { "Content-Type": "application/json" },
       });
 
@@ -51,7 +54,7 @@ describe("PokemonContract", function () {
       expect(tokenURI).to.equal(`ipfs://${cid}`);
 
       const fetched = await axios.get(
-        `http://localhost:8080/?cid=${cid}&json=true`
+        `${HELIA_TEST_BASE_URL}/?cid=${cid}&json=true`
       );
 
       expect(fetched.data.name.toLowerCase()).to.equal("bulbasaur");

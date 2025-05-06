@@ -1,0 +1,25 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "scripts": {
+    "test": "npx hardhat test",
+    "dev:helia": "node scripts/dev/helia-dev-server.js",
+    "dev:helia:test": "node scripts/test/helia-test-server.js",
+    "deploy": "npx hardhat run scripts/deploy.mjs --network localhost"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.23.0",
+    "prettier-plugin-solidity": "^2.0.0"
+  },
+  "dependencies": {
+    "@helia/unixfs": "^5.0.0",
+    "@openzeppelin/contracts": "^5.3.0",
+    "helia": "^5.3.0"
+  }
+}

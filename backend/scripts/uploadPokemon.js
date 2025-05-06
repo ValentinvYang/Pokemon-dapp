@@ -4,6 +4,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { readFileSync, writeFileSync } from "fs";
+import { HELIA_DEV_BASE_URL } from "./utils/config.js";
 
 // Resolve __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -40,7 +41,7 @@ const uploadToHelia = async (
   data,
   contentType = "application/octet-stream"
 ) => {
-  const res = await axios.post("http://localhost:8080/add", data, {
+  const res = await axios.post(`${HELIA_DEV_BASE_URL}/add`, data, {
     headers: {
       "Content-Type": contentType,
     },
@@ -67,7 +68,7 @@ const main = async () => {
 
   const cidMap = {};
 
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= 2; i++) {
     const data = await fetchPokemon(i);
 
     //Upload image from the cloned https://github.com/HybridShivam/Pokemon repo (Pokemon folder)
@@ -124,7 +125,7 @@ const main = async () => {
 
   //For debugging and verifying uploads
   writeFileSync(
-    path.resolve(__dirname, "./gen1-image-cid-map.json"),
+    path.resolve(__dirname, "./data/gen1-image-cid-map.json"),
     JSON.stringify(cidMap, null, 2)
   );
 };

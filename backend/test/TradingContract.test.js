@@ -2,7 +2,9 @@ import axios from "axios";
 import { expect } from "chai";
 import hardhat from "hardhat";
 const { ethers } = hardhat;
-const { ZeroAddress } = ethers;
+
+//A RUNNING HELIA LOCAL NODE IS REQUIRED FOR TESTING
+import { HELIA_TEST_BASE_URL } from "../scripts/utils/config.js";
 
 describe("TradingContract", function () {
   let pokemonContract;
@@ -57,12 +59,16 @@ describe("TradingContract", function () {
       ],
     };
 
-    const res1 = await axios.post("http://localhost:8080/add", bulbasaurMeta, {
+    const res1 = await axios.post(`${HELIA_TEST_BASE_URL}/add`, bulbasaurMeta, {
       headers: { "Content-Type": "application/json" },
     });
-    const res2 = await axios.post("http://localhost:8080/add", charmanderMeta, {
-      headers: { "Content-Type": "application/json" },
-    });
+    const res2 = await axios.post(
+      `${HELIA_TEST_BASE_URL}/add`,
+      charmanderMeta,
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
     bulbasaurCid = res1.data.cid;
     charmanderCid = res2.data.cid;

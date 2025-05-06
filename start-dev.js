@@ -55,7 +55,7 @@ async function main() {
   console.log("✅ Hardhat node is ready!");
 
   console.log("🛰️ Starting Helia server...");
-  const helia = spawn("node", ["backend/scripts/helia-server.js"], {
+  const helia = spawn("node", ["backend/scripts/dev/helia-dev-server.js"], {
     stdio: "inherit",
     shell: true,
   });
