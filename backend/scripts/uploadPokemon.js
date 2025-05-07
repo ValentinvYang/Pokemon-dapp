@@ -66,11 +66,11 @@ const main = async () => {
   for (let i = 1; i <= POKEMON_AMOUNT; i++) {
     const data = await fetchPokemon(i);
 
-    //Upload image from the cloned https://github.com/HybridShivam/Pokemon repo (Pokemon folder)
+    //Upload images
     const paddedId = String(i).padStart(3, "0");
     const localImagePath = path.resolve(
       __dirname,
-      "../../Pokemon/assets/images",
+      "../../PokeImages",
       `${paddedId}.png`
     );
     const imageBytes = new Uint8Array(readFileSync(localImagePath));

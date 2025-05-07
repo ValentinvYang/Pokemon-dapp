@@ -14,6 +14,17 @@ A fully local DApp that lets users trade Pokemon using smart contracts, IPFS sto
 
 ---
 
+## 📦 Environment
+
+- Node.js v22
+- npm v10
+- Hardhat v2
+- Ethers.js v6
+- OpenZeppelin Contracts v5
+- Vite v6
+- Tailwind CSS v3
+- Helia v5
+
 ## 📦 Project Structure
 
 pokemon-dapp/
@@ -37,6 +48,28 @@ pokemon-dapp/
 
 ---
 
+## 📜 Smart Contract Interface
+
+### Pokemon Contract: [`PokemonContract.sol`](backend/contracts/PokemonContract.sol)
+
+| Function        | Description                      |
+| --------------- | -------------------------------- |
+| `mintPokemon()` | Mint a Pokemon with metadata CID |
+
+### Trading Contract: [`TradingContract.sol`](backend/contracts/TradingContract.sol)
+
+| Function            | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `listPokemon()`     | List a Pokemon for fixed price or auction                |
+| `buyPokemon()`      | Purchase a fixed-price Pokemon                           |
+| `commitBid()`       | Commit a bid for an auction                              |
+| `revealBid()`       | Reveal your bid and salt                                 |
+| `finalizeAuction()` | Finalize auction and transfer Pokemon to winner          |
+| `removeListing()`   | Seller can delist their Pokemon (only if no bids)        |
+| `withdrawRefund()`  | Claim your refunds after losing auction or failed reveal |
+
+---
+
 ## ⚙ Configuration
 
 The following settings are defined in [`backend/scripts/utils/config.js`]:
@@ -44,6 +77,8 @@ The following settings are defined in [`backend/scripts/utils/config.js`]:
 - `HELIA_DEV_BASE_URL`: Base URL of the development Helia server (default: `http://localhost:8080`)
 - `HELIA_TEST_BASE_URL`: Base URL of the testing Helia server (default: `http://localhost:3001`)
 - `POKEMON_AMOUNT`: Number of Pokemon NFTs to mint on deployment (default: `50`)
+
+---
 
 ### 🔌 Helia Server Ports
 
@@ -171,10 +206,24 @@ npx hardhat test
 
 ## 📸 Pokémon Images
 
-Pokémon images are pulled from (https://github.com/HybridShivam/Pokemon).
+This project uses static Pokemon images (001–200) from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon).
 
-If you're using a submodule:
+✅ All images used are pre-downloaded and bundled inside the project.
 
-```bash
-git submodule update --init
-```
+⚠️ The app currently supports images of the first 386 Pokemon.
+
+To update or extend this, replace/add images under `PokeImages` and update `POKEMON_AMOUNT` in `backend/scripts/utils/config.js`.
+
+---
+
+## License
+
+This project is submitted as part of a course assignment and is not intended for production use.
+
+---
+
+## 🙏 Acknowledgements
+
+- Pokémon sprites from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon)
+- Solidity libraries by [OpenZeppelin](https://openzeppelin.com)
+- IPFS powered by [Helia](https://helia.io)
