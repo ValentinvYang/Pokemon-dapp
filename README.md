@@ -25,26 +25,32 @@ A fully local DApp that lets users trade Pokemon using smart contracts, IPFS sto
 - Tailwind CSS v3
 - Helia v5
 
-## 📦 Project Structure
+## 📁 Project Structure
 
-pokemon-dapp/
-├── backend/ # Contains smart contract code and blockchain configs
-│ ├── contracts/ # Solidity smart contracts
-│ ├── scripts/ # Deployment and interaction scripts
-│ ├── test/ # Smart contract tests
-│ └── hardhat.config.js # Hardhat configuration file
-├── deployments/ # Shared directory for deployed contracts
-│ └── contracts.json # Generated JSON containing deployed contract addresses and ABIs
-├── frontend/ # Frontend client built with Vite and React
-│ ├── public/ # Static assets
-│ ├── src/ # Source code for the React app
-│ ├── index.html # Main HTML file
-│ ├── vite.config.js # Vite configuration
-│ └── tailwind.config.js # Tailwind CSS configuration
-├── README.md # Project overview and instructions
-├── package.json # Project dependencies and scripts
-├── .gitignore # Git ignore rules
-├── start-dev.js # Utility script to start the local development environment
+- [`backend/`](backend/) – Smart contracts and blockchain config
+
+  - [`contracts/`](backend/contracts/) – Solidity smart contracts
+  - [`scripts/`](backend/scripts/) – Deployment, upload, and helper scripts
+  - [`test/`](backend/test/) – Smart contract unit tests
+  - [`hardhat.config.js`](backend/hardhat.config.js) – Hardhat project config
+
+- [`deployments/`](deployments/) – Shared JSON for contract addresses and ABIs
+
+  - [`contracts.json`](deployments/contracts.json) – ABI and deployed addresses
+
+- [`frontend/`](frontend/) – Vite + React frontend
+
+  - [`public/`](frontend/public/) – Static assets
+  - [`src/`](frontend/src/) – Source code (components, views, hooks, etc.)
+  - [`index.html`](frontend/index.html) – App entry HTML
+  - [`vite.config.js`](frontend/vite.config.js) – Vite configuration
+  - [`tailwind.config.js`](frontend/tailwind.config.js) – Tailwind CSS config
+
+- [`PokeImages/`](PokeImages/) – Static Pokémon images (001–200) used by the app
+- [`start-dev.js`](start-dev.js) – Launches Hardhat node, Helia server, deploy script, and frontend
+- [`README.md`](README.md) – This file
+- [`package.json`](package.json) – Shared dependencies and scripts
+- [`.gitignore`](.gitignore) – Git ignore rules
 
 ---
 
@@ -204,9 +210,9 @@ npx hardhat test
 
 ---
 
-## 📸 Pokémon Images
+## 📸 Pokemon Images
 
-This project uses static Pokemon images (001–200) from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon).
+This project uses static Pokemon images (001–386) from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon).
 
 ✅ All images used are pre-downloaded and bundled inside the project.
 
@@ -224,6 +230,6 @@ This project is submitted as part of a course assignment and is not intended for
 
 ## 🙏 Acknowledgements
 
-- Pokémon sprites from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon)
+- Pokemon sprites from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon)
 - Solidity libraries by [OpenZeppelin](https://openzeppelin.com)
 - IPFS powered by [Helia](https://helia.io)
