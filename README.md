@@ -46,7 +46,7 @@ A fully local DApp that lets users trade Pokemon using smart contracts, IPFS sto
   - [`vite.config.js`](frontend/vite.config.js) – Vite configuration
   - [`tailwind.config.js`](frontend/tailwind.config.js) – Tailwind CSS config
 
-- [`PokeImages/`](PokeImages/) – Static Pokémon images (001–200) used by the app
+- [`PokeImages/`](PokeImages/) – Static Pokemon images (001–386) used by the app
 - [`start-dev.js`](start-dev.js) – Launches Hardhat node, Helia server, deploy script, and frontend
 - [`README.md`](README.md) – This file
 - [`package.json`](package.json) – Shared dependencies and scripts
