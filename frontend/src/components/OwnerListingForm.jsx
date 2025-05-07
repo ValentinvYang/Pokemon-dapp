@@ -1,6 +1,8 @@
 import { useState, useContext } from "react";
 import { ContractContext } from "../contexts/AppContracts";
 import { ethers } from "ethers";
+import listingLimits from "../config/listingLimits.json";
+import { InfoTooltip } from "./InfoToolTip";
 
 function OwnerListingForm({ pokemonId, onClose, onListed }) {
   const { pokemonContract, tradingContract } = useContext(ContractContext);
@@ -18,13 +20,35 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
         return;
       }
 
-      if (isAuction && Number(auctionDuration) < 100) {
-        alert("Auction duration has to be larger than 100");
+      if (
+        Number(price) < listingLimits.MIN_PRICE_ETH ||
+        Number(price) > listingLimits.MAX_PRICE_ETH
+      ) {
+        alert(
+          `Price must be between ${listingLimits.MIN_PRICE_ETH} and ${listingLimits.MAX_PRICE_ETH} ETH.`
+        );
         return;
       }
 
-      if (isAuction && Number(finalizeDelay) < 120) {
-        alert("Finalize delay has to be larger than 100");
+      if (
+        isAuction &&
+        (Number(auctionDuration) < listingLimits.MIN_AUCTION_DURATION ||
+          Number(auctionDuration) > listingLimits.MAX_AUCTION_DURATION)
+      ) {
+        alert(
+          `Auction duration must be between ${listingLimits.MIN_AUCTION_DURATION} and ${listingLimits.MAX_AUCTION_DURATION} seconds.`
+        );
+        return;
+      }
+
+      if (
+        isAuction &&
+        (Number(finalizeDelay) < listingLimits.MIN_FINALIZE_DELAY ||
+          Number(finalizeDelay) > listingLimits.MAX_FINALIZE_DELAY)
+      ) {
+        alert(
+          `Finalize delay must be between ${listingLimits.MIN_FINALIZE_DELAY} and ${listingLimits.MAX_FINALIZE_DELAY} seconds.`
+        );
         return;
       }
 
@@ -60,7 +84,7 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
 
       onClose?.(); //Close PokemonModal after successful transaction
       onListed?.(); //Force Refresh page
-      alert("✅ Pokémon listed successfully!");
+      alert("✅ Pokemon listed successfully!");
     } catch (err) {
       console.error("Listing failed:", err);
       alert("❌ Listing failed.");
@@ -96,13 +120,20 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
 
           {selectedType === "fixed" && (
             <>
-              <input
-                type="text"
-                placeholder="Enter price in ETH"
-                className="w-full p-2 border border-gray-300 rounded"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Enter price in ETH"
+                  className="w-full p-2 pr-8 border border-gray-300 rounded"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <InfoTooltip
+                    message={`Price must be between ${listingLimits.MIN_PRICE_ETH} and ${listingLimits.MAX_PRICE_ETH} ETH.`}
+                  />
+                </div>
+              </div>
               <button
                 onClick={() => handleListing(false)}
                 disabled={loading}
@@ -115,27 +146,65 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
 
           {selectedType === "auction" && (
             <>
-              <input
-                type="text"
-                placeholder="Enter minimum bid in ETH"
-                className="w-full p-2 border border-gray-300 rounded"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Enter auction duration (≥ 100 seconds)"
-                className="w-full p-2 border border-gray-300 rounded"
-                value={auctionDuration}
-                onChange={(e) => setAuctionDuration(e.target.value)}
-              />
-              <input
-                type="text"
-                placeholder="Enter reveal window duration (≥ 120 seconds)"
-                className="w-full p-2 border border-gray-300 rounded"
-                value={finalizeDelay}
-                onChange={(e) => setFinalizeDelay(e.target.value)}
-              />
+              {/* Minimum Bid Input */}
+              <div className="relative w-full mb-2">
+                <input
+                  type="text"
+                  placeholder="Enter minimum bid in ETH"
+                  className="w-full p-2 pr-8 border border-gray-300 rounded"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <InfoTooltip
+                    message={`Minimum bid must be between ${listingLimits.MIN_PRICE_ETH} and ${listingLimits.MAX_PRICE_ETH} ETH.`}
+                  />
+                </div>
+              </div>
+
+              {/* Auction Duration Input */}
+              <div className="relative w-full mb-2">
+                <input
+                  type="text"
+                  placeholder="Enter auction duration (seconds)"
+                  className="w-full p-2 pr-8 border border-gray-300 rounded"
+                  value={auctionDuration}
+                  onChange={(e) => setAuctionDuration(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <InfoTooltip
+                    message={`Duration must be between ${listingLimits.MIN_AUCTION_DURATION} and ${listingLimits.MAX_AUCTION_DURATION} seconds.`}
+                  />
+                </div>
+              </div>
+
+              {/* Finalize Delay Input */}
+              <div className="relative w-full mb-2">
+                <input
+                  type="text"
+                  placeholder="Enter reveal window (seconds)"
+                  className="w-full p-2 pr-8 border border-gray-300 rounded"
+                  value={finalizeDelay}
+                  onChange={(e) => setFinalizeDelay(e.target.value)}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  <InfoTooltip
+                    message={`Reveal window must be between ${listingLimits.MIN_FINALIZE_DELAY} and ${listingLimits.MAX_FINALIZE_DELAY} seconds.`}
+                  />
+                </div>
+              </div>
+
+              {/* Finalizer Fee Notice */}
+              <div className="text-sm text-yellow-700 bg-yellow-100 border-l-4 border-yellow-400 p-3 rounded mb-2">
+                <strong>⚠️ Note:</strong> Starting an auction requires a{" "}
+                <span className="font-semibold">
+                  {listingLimits.FINALIZER_FEE_ETH} ETH
+                </span>{" "}
+                finalizer fee, which is paid to the third party that finalizes
+                the auction.
+              </div>
+
+              {/* Confirm Button */}
               <button
                 onClick={() => handleListing(true)}
                 disabled={loading}
@@ -148,83 +217,6 @@ function OwnerListingForm({ pokemonId, onClose, onListed }) {
         </>
       )}
     </div>
-    /*
-    <div className="space-y-4 w-full md:w-2/3 mx-auto">
-      {!hideFixedButton &&
-        (!showFormFixed ? (
-          <button
-            onClick={() => {
-              setShowFormFixed(true);
-              setHideAuctionButton(true);
-            }}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg w-full"
-          >
-            Create Fixed Price Listing
-          </button>
-        ) : (
-          <>
-            <input
-              type="text"
-              placeholder="Enter price in ETH"
-              className="w-full p-2 border border-gray-300 rounded"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
-            <button
-              onClick={() => handleListing(false)}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg w-full disabled:opacity-50"
-            >
-              {loading ? "Listing..." : "Confirm Listing"}
-            </button>
-          </>
-        ))}
-
-      {!hideAuctionButton &&
-        (!showFormAuction ? (
-          <button
-            onClick={() => {
-              setShowFormAuction(true);
-              setHideFixedButton(true);
-            }}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg w-full"
-          >
-            Create Auction Listing
-          </button>
-        ) : (
-          <>
-            <input
-              type="text"
-              placeholder="This is the minimum bid in ETH."
-              className="w-full p-2 border border-gray-300 rounded"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Enter auction duration (seconds >= 100)"
-              className="w-full p-2 border border-gray-300 rounded"
-              value={auctionDuration}
-              onChange={(e) => setAuctionDuration(e.target.value)}
-            />
-            <input
-              type="text"
-              placeholder="Enter reveal window duration (seconds >= 120)"
-              className="w-full p-2 border border-gray-300 rounded"
-              value={finalizeDelay}
-              onChange={(e) => setFinalizeDelay(e.target.value)}
-            />
-            <button
-              onClick={() => handleListing(true)}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg w-full disabled:opacity-50"
-            >
-              {loading ? "Listing..." : "Confirm Listing"}
-            </button>
-          </>
-        ))}
-    </div>
-    */
   );
 }
 

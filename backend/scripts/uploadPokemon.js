@@ -1,3 +1,6 @@
+// uploadPokemon.js – Fetches Gen 1 Pokemon data, uploads to IPFS via Helia,
+// and mints NFTs on the local Hardhat network.
+
 import axios from "axios";
 import { ethers } from "ethers";
 import { readFile } from "fs/promises";
@@ -5,22 +8,18 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { readFileSync, writeFileSync } from "fs";
 import { HELIA_DEV_BASE_URL } from "./utils/config.js";
+import { POKEMON_AMOUNT } from "./utils/config.js";
 
-// Resolve __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load contract metadata from generated file
 const contracts = JSON.parse(
-  await readFile(
-    path.resolve(__dirname, "../../frontend/src/contracts/contracts.json")
-  )
+  await readFile(path.resolve(__dirname, "../../deployments/contracts.json"))
 );
 
 const pokemonAbi = contracts.PokemonContract.abi;
-const tradingAbi = contracts.TradingContract.abi;
 const POKEMON_CONTRACT_ADDRESS = contracts.PokemonContract.address;
-const TRADING_CONTRACT_ADDRESS = contracts.TradingContract.address;
 
 // Fetch Pokemon data from PokéAPI
 const fetchPokemon = async (id) => {
@@ -50,7 +49,7 @@ const uploadToHelia = async (
 };
 
 const main = async () => {
-  // Connect to local Hardhat node
+  // Connect to local Hardhat node and get default signer
   const provider = new ethers.JsonRpcProvider("http://127.0.0.1:8545");
   const signer = await provider.getSigner();
 
@@ -60,15 +59,11 @@ const main = async () => {
     signer
   );
 
-  const tradingContract = new ethers.Contract(
-    TRADING_CONTRACT_ADDRESS,
-    tradingAbi,
-    signer
-  );
-
+  // Used for tracking uploaded image CIDs (for debugging)
   const cidMap = {};
 
-  for (let i = 1; i <= 2; i++) {
+  // Loop through specified amount of Pokemon and mint them
+  for (let i = 1; i <= POKEMON_AMOUNT; i++) {
     const data = await fetchPokemon(i);
 
     //Upload image from the cloned https://github.com/HybridShivam/Pokemon repo (Pokemon folder)
@@ -108,19 +103,6 @@ const main = async () => {
     await tx.wait();
 
     console.log(`✅ Minted ${data.name} with CID: ${metadataCid}`);
-
-    /*
-    //Create a non-auction listing for users to buy the minted Pokemon:
-    await pokemonContract
-      .connect(signer)
-      .approve(tradingContract.target, i - 1);
-    const createListing = await tradingContract
-      .connect(signer)
-      .listPokemon(i - 1, ethers.parseEther("1"), false, 0);
-    await createListing.wait();
-
-    console.log(`Listed Pokemon with ID ${i - 1} from ${signer.address}`);
-    */
   }
 
   //For debugging and verifying uploads

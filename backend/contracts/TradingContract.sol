@@ -30,8 +30,24 @@ contract TradingContract is
     uint256 commitTime; //for tie-breaker
   }
 
-  mapping(uint256 => Listing) public listings;
+  uint256 public constant MAX_PRICE = 100 ether;
+  uint256 public constant MIN_PRICE = 0.001 ether;
+
+  uint256 public constant MAX_AUCTION_DURATION = 7 days;
+  uint256 public constant MIN_AUCTION_DURATION = 100;
+
+  uint256 public constant MAX_BID = 200 ether; 
+
+  uint256 public constant MAX_FINALIZE_DELAY = 1 days;
+  uint256 public constant MIN_FINALIZE_DELAY = 120;
+
+  uint256 public constant FINALIZER_FEE = 0.0015 ether; //Approx. $3 USD assuming 1 ETH = $2000
+
+  IERC721 public pokemonContract;
+
   uint256[] public activeListingIds;
+
+  mapping(uint256 => Listing) public listings;
 
   mapping(uint256 => mapping(address => Commitment)) public commitments;
   mapping(uint256 => address[]) public committedBidders;
@@ -39,8 +55,6 @@ contract TradingContract is
   //Pull payment pattern for auction bids to prevent Reentrancy and Dos attacks
   mapping(address => uint256) public pendingRefunds;
   mapping(uint256 => uint256) public auctionRewards;
-  IERC721 public pokemonContract;
-  uint256 public constant FINALIZER_FEE = 0.0015 ether; //Approx. $3 USD assuming 1 ETH = $2000
 
   event Listed(uint256 indexed pokemonId, uint256 price, bool isAuction);
   event BidCommitted(uint256 indexed pokemonId, address indexed bidder);
@@ -117,20 +131,13 @@ contract TradingContract is
     uint256 auctionDuration,
     uint256 _finalizeDelay
   ) external payable onlyPokemonOwner(pokemonId) whenNotPaused {
-    require(price > 0, "Price must be larger than zero");
+    require(price >= MIN_PRICE && price <= MAX_PRICE, "Invalid price");
 
     if (isAuction) {
       require(msg.value >= FINALIZER_FEE, "Must send ETH for finalizer reward");
 
-      require(
-        auctionDuration > 0,
-        "Auction duration must be greater than zero"
-      );
-
-      require(
-        _finalizeDelay >= 120,
-        "Finalize delay must be at least 120 seconds"
-      );
+      require(auctionDuration >= MIN_AUCTION_DURATION && auctionDuration <= MAX_AUCTION_DURATION, "Invalid duration");
+      require(_finalizeDelay >= MIN_FINALIZE_DELAY && _finalizeDelay <= MAX_FINALIZE_DELAY, "Invalid finalize delay");
     }
 
     listings[pokemonId] = Listing({
@@ -192,6 +199,7 @@ contract TradingContract is
     require(existing.commitHash == bytes32(0), "Already committed");
 
     require(msg.value >= listing.price, "Bid must be at least minimum price");
+    require(msg.value <= MAX_BID, "Bid exceeds maximum allowed");
 
     require(
       msg.sender != listing.seller,

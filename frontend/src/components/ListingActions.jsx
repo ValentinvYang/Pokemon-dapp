@@ -3,6 +3,8 @@ import { ethers } from "ethers";
 import { useState, useEffect } from "react";
 import { ContractContext } from "../contexts/AppContracts";
 import { keccak256, solidityPacked, toUtf8Bytes } from "ethers";
+import { InfoTooltip } from "./InfoToolTip";
+import listingLimits from "../config/listingLimits.json";
 
 export default function ListingActions({
   isOwner,
@@ -129,18 +131,29 @@ export default function ListingActions({
         return;
       }
 
-      if (bidInWei < listing.price) {
+      //Check min and max bounds
+      const minBidWei = listing.price;
+      const maxBidWei = ethers.parseEther(listingLimits.MAX_BID_ETH.toString());
+
+      if (bidInWei < minBidWei) {
         alert(
-          `❌ Your bid must be at least ${ethers.formatEther(
-            listing.price
-          )} ETH`
+          `❌ Your bid must be at least ${ethers.formatEther(minBidWei)} ETH.`
         );
         return;
       }
 
+      if (bidInWei > maxBidWei) {
+        alert(
+          `❌ Your bid exceeds the maximum allowed: ${listingLimits.MAX_BID_ETH} ETH.`
+        );
+        return;
+      }
+
+      // Pack and hash bid + salt
       const packed = solidityPacked(["uint256", "string"], [bidInWei, salt]);
       const commitHash = keccak256(packed);
 
+      // Submit bid
       const tx = await tradingContract.commitBid(
         listing.pokemonId,
         commitHash,
@@ -160,8 +173,9 @@ export default function ListingActions({
       ⚠️ Make sure to save your bid amount and salt securely. 
       You will need them to reveal your bid later and be eligible to win the Pokémon.`
       );
+
       onClose?.(); //Close Modal
-      onListed?.(); //Refresh MyPokemon/Marketplace/Gallery
+      onListed?.(); //Refresh listings
     } catch (err) {
       console.error("Bid failed:", err);
       alert("❌ Bid commit failed.");
@@ -209,7 +223,14 @@ export default function ListingActions({
       onClose?.(); //Close Modal
     } catch (err) {
       console.error("Reveal failed:", err);
-      alert("❌ Reveal failed.");
+
+      // Heuristic: if it's a call revert, assume it's likely the hash mismatch
+      const reason =
+        err?.message?.includes("revert") || err?.code === "CALL_EXCEPTION"
+          ? `The reveal likely failed because your bid amount or salt does not match your committed bid.`
+          : `An unexpected error occurred.`;
+
+      alert(`❌ Reveal failed. ${reason}`);
     } finally {
       setLoading(false);
     }
@@ -328,24 +349,38 @@ export default function ListingActions({
         </div>
 
         {/* Bid Input */}
-        <input
-          type="text"
-          placeholder={`Your bid (min ${ethers.formatEther(
-            `${listing.price}`
-          )} ETH)`}
-          className="w-full p-2 border border-gray-300 rounded"
-          value={bidAmount}
-          onChange={(e) => setBidAmount(e.target.value)}
-        />
+        <div className="relative w-full">
+          <input
+            type="text"
+            placeholder={`Your bid (min ${ethers.formatEther(
+              `${listing.price}`
+            )} ETH)`}
+            className="w-full p-2 pr-8 border border-gray-300 rounded"
+            value={bidAmount}
+            onChange={(e) => setBidAmount(e.target.value)}
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            <InfoTooltip
+              message={`Your bid must be at least ${ethers.formatEther(
+                `${listing.price}`
+              )} ETH and no more than ${listingLimits.MAX_BID_ETH} ETH.`}
+            />
+          </div>
+        </div>
 
         {/* Salt Input */}
-        <input
-          type="text"
-          placeholder="Your secret salt"
-          className="w-full p-2 border border-gray-300 rounded"
-          value={salt}
-          onChange={(e) => setSalt(e.target.value)}
-        />
+        <div className="relative w-full">
+          <input
+            type="text"
+            placeholder="Your secret salt"
+            className="w-full p-2 pr-8 border border-gray-300 rounded"
+            value={salt}
+            onChange={(e) => setSalt(e.target.value)}
+          />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            <InfoTooltip message="The salt is a secret word or number you choose. It helps reveal your bid later — keep it safe!" />
+          </div>
+        </div>
 
         {/* Submit Button */}
         <button
@@ -436,9 +471,12 @@ export default function ListingActions({
         {/* Info Message */}
         <div className="bg-green-50 border-l-4 border-green-500 text-green-800 p-3 text-sm rounded shadow-sm">
           <strong>🎉 Finalize Reward:</strong> You’ll earn
-          <span className="font-bold text-green-700"> 0.0015 ETH</span> for
-          finalizing this auction! Be the one to finalize and claim your reward
-          in the refunds.
+          <span className="font-bold text-green-700">
+            {" "}
+            {listingLimits.FINALIZER_FEE_ETH} ETH
+          </span>{" "}
+          for finalizing this auction! Be the one to finalize and claim your
+          reward in the refunds.
         </div>
 
         {/* Finalize Button */}

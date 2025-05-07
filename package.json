@@ -3,12 +3,22 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node start-dev.js"
+    "compile": "npx hardhat compile --config backend/hardhat.config.cjs",
+    "test:helia": "node backend/scripts/test/helia-test-server.js",
+    "test": "npx hardhat test --config backend/hardhat.config.cjs",
+    "dev": "node start-dev.js",
+    "dev:helia": "node backend/scripts/dev/helia-dev-server.js"
   },
   "devDependencies": {
-    "ethers": "^6.13.5"
+    "ethers": "^6.13.5",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.23.0",
+    "prettier-plugin-solidity": "^2.0.0"
   },
   "dependencies": {
-    "dotenv": "^16.5.0"
+    "dotenv": "^16.5.0",
+    "@openzeppelin/contracts": "^5.3.0",
+    "@helia/unixfs": "^5.0.0",
+    "helia": "^5.3.0"
   }
 }

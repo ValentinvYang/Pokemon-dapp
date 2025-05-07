@@ -68,10 +68,7 @@ const contractsExport = {
   },
 };
 
-const outputPath = path.resolve(
-  __dirname,
-  "../../frontend/src/contracts/contracts.json"
-);
+const outputPath = path.resolve(__dirname, "../../deployments/contracts.json");
 
 const newContent = JSON.stringify(contractsExport, null, 2);
 

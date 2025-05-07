@@ -11,7 +11,7 @@ import MyRefunds from "./components/MyRefunds";
 //Contracts:
 import { ContractContext } from "./contexts/AppContracts";
 import { BrowserProvider, Contract } from "ethers";
-import contractData from "./contracts/contracts.json";
+import contractData from "../../deployments/contracts.json";
 
 function App() {
   const [isConnected, setIsConnected] = useState(false);

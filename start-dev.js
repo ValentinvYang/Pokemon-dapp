@@ -67,6 +67,15 @@ async function main() {
     { cwd: "./backend" }
   );
 
+  console.log("📦 Exporting listing limits...");
+  await run(
+    "npx",
+    ["hardhat", "run", "scripts/exportLimits.js", "--network", "localhost"],
+    {
+      cwd: "./backend",
+    }
+  );
+
   console.log("📤 Uploading Pokémon...");
   await run("node", ["backend/scripts/uploadPokemon.js"]);
 
