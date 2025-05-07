@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\Valentin Yang\\Desktop\\ETH\\Decentralized Finance\\pokemon-dapp\\backend\\contracts\\PokemonContract.sol": {
-      "lastModificationDate": 1746254211825,
-      "contentHash": "c834cea54c01369b11a41430d23d5996",
+      "lastModificationDate": 1746618281980,
+      "contentHash": "77be474a686128ca05821c8ac1346fc2",
       "sourceName": "contracts/PokemonContract.sol",
       "solcConfig": {
         "version": "0.8.28",
@@ -32,8 +32,7 @@
       "imports": [
         "hardhat/console.sol",
         "@openzeppelin/contracts/token/ERC721/ERC721.sol",
-        "@openzeppelin/contracts/access/Ownable.sol",
-        "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol"
+        "@openzeppelin/contracts/access/Ownable.sol"
       ],
       "versionPragmas": [
         "^0.8.28"
@@ -649,8 +648,8 @@
       ]
     },
     "C:\\Users\\Valentin Yang\\Desktop\\ETH\\Decentralized Finance\\pokemon-dapp\\backend\\contracts\\TradingContract.sol": {
-      "lastModificationDate": 1746606194668,
-      "contentHash": "b4820a3945486fab1878e48c38665626",
+      "lastModificationDate": 1746621350694,
+      "contentHash": "23d3257c0fd2d957356611d6136a0e8d",
       "sourceName": "contracts/TradingContract.sol",
       "solcConfig": {
         "version": "0.8.28",

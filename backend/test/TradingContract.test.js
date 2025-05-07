@@ -13,14 +13,13 @@ describe("TradingContract", function () {
   let addr1;
   let addr2;
   let addr3;
-  let addr4;
   let bulbasaurCid;
   let charmanderCid;
   const FINALIZER_FEE = ethers.parseEther("0.0015");
   const revealWindow = 120;
 
   beforeEach(async function () {
-    [owner, addr1, addr2, addr3, addr4] = await ethers.getSigners();
+    [owner, addr1, addr2, addr3] = await ethers.getSigners();
 
     pokemonContract = await ethers.deployContract("PokemonContract", [
       "PokemonContract",
@@ -197,11 +196,11 @@ describe("TradingContract", function () {
   });
 
   describe("Removing a listing", function () {
-    const bulbasaurId = 0;
-    const charmanderId = 1;
+    let bulbasaurId, charmanderId;
 
     beforeEach(async function () {
       // Mint and list a fixed-price Pokemon before each test
+      bulbasaurId = await pokemonContract.getNextTokenId();
       await pokemonContract.connect(owner).mintPokemon(bulbasaurCid);
       await pokemonContract
         .connect(owner)
@@ -210,44 +209,72 @@ describe("TradingContract", function () {
         .connect(owner)
         .listPokemon(bulbasaurId, ethers.parseEther("1"), false, 0, 0);
 
-      // Mint and list a auction Pokemon before each test
+      //Mint and list an auction Pokemon before each test
+      charmanderId = await pokemonContract.getNextTokenId();
       await pokemonContract.connect(owner).mintPokemon(charmanderCid);
       await pokemonContract
         .connect(owner)
         .approve(tradingContract.target, charmanderId);
       await tradingContract
         .connect(owner)
-        .listPokemon(charmanderId, ethers.parseEther("1"), false, 0, 0);
+        .listPokemon(charmanderId, ethers.parseEther("1"), true, 120, 120, {
+          value: FINALIZER_FEE,
+        });
     });
 
     it("Should allow seller to remove fixed price listing as well as auction listing", async function () {
-      //owner removes fixed price listing
+      // owner removes fixed price listing
       await expect(tradingContract.connect(owner).removeListing(bulbasaurId))
         .to.emit(tradingContract, "ListingRemoved")
         .withArgs(bulbasaurId);
 
-      //listing should not exist anymore
+      // listing should not exist anymore
       await expect(
         tradingContract.connect(addr2).buyPokemon(bulbasaurId)
       ).to.be.revertedWith("Listing does not exist");
 
-      //owner should own Pokemon again
+      // owner should own Pokemon again
       const ownerOfBulbasaur = await pokemonContract.ownerOf(bulbasaurId);
       await expect(ownerOfBulbasaur).to.equal(owner.address);
 
-      //owner removes auction listing (assuming auction ongoing!)
+      // owner removes auction listing (assuming auction ongoing and no bid placed!)
       await expect(tradingContract.connect(owner).removeListing(charmanderId))
         .to.emit(tradingContract, "ListingRemoved")
         .withArgs(charmanderId);
 
-      //listing should not exist anymore
+      // listing should not exist anymore
+      const bidAmount = ethers.parseEther("1");
+      const salt = "secret123";
+      const commitHash = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [bidAmount, salt])
+      );
       await expect(
-        tradingContract.connect(addr2).buyPokemon(charmanderId)
+        tradingContract.connect(addr2).commitBid(charmanderId, commitHash, {
+          value: bidAmount,
+        })
       ).to.be.revertedWith("Listing does not exist");
 
       //owner should own Pokemon again
       const ownerOfCharmander = await pokemonContract.ownerOf(bulbasaurId);
       await expect(ownerOfCharmander).to.equal(owner.address);
+    });
+
+    it("Should not allow seller to remove an auction listing after a bid has been placed", async function () {
+      // addr1 places a bid (commit phase)
+      const bidAmount = ethers.parseEther("1");
+      const salt = "secret123";
+      const commitHash = ethers.keccak256(
+        ethers.solidityPacked(["uint256", "string"], [bidAmount, salt])
+      );
+
+      await tradingContract.connect(addr1).commitBid(charmanderId, commitHash, {
+        value: bidAmount,
+      });
+
+      // Attempt by seller to remove listing should now fail
+      await expect(
+        tradingContract.connect(owner).removeListing(charmanderId)
+      ).to.be.revertedWith("Cannot remove listing after a bid has been placed");
     });
   });
 

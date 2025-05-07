@@ -20,6 +20,7 @@ export default function ListingActions({
   const [bidAmount, setBidAmount] = useState("");
   const [salt, setSalt] = useState("");
   const [hasCommitted, setHasCommitted] = useState("");
+  const [hasBids, setHasBids] = useState(false);
   const [revealed, setRevealed] = useState("");
 
   const isAuction = listing.isAuction;
@@ -59,6 +60,23 @@ export default function ListingActions({
     checkCommitment();
     checkRevealed();
   }, [tradingContract, signer, listing]);
+
+  useEffect(() => {
+    const fetchBidStatus = async () => {
+      if (!isAuction || !listing?.pokemonId) return;
+
+      try {
+        const bidderCount = await tradingContract.getBidderCount(
+          listing.pokemonId
+        );
+        setHasBids(bidderCount > 0);
+      } catch (err) {
+        console.error("Failed to fetch committed bidders:", err);
+      }
+    };
+
+    fetchBidStatus();
+  }, [tradingContract, listing?.pokemonId, isAuction]);
 
   /////////////////////////////////////////
   //Handler Functions
@@ -241,7 +259,7 @@ export default function ListingActions({
 
   //1. OWNER ACTIONS
   if (isOwner) {
-    if (!isAuction || (isAuction && !ended)) {
+    if (!isAuction) {
       return (
         <>
           <button
@@ -250,20 +268,42 @@ export default function ListingActions({
           >
             Delist Pokemon
           </button>
-          {!isAuction ? (
-            <p className="text-sm text-gray-600 font-medium mt-2">
-              This is a fixed price listing and will remain active until
-              manually delisted.
-            </p>
-          ) : (
-            <p className="mb-2 text-black-600 font-semibold">{timeLeft}</p>
-          )}
+          <p className="text-sm text-gray-600 font-medium mt-2">
+            This is a fixed price listing and will remain active until manually
+            delisted.
+          </p>
         </>
       );
     }
 
-    //During reveal window owner can see time
-    if (isAuction && !revealWindowClosed) {
+    if (isAuction && !ended && !hasBids) {
+      return (
+        <>
+          <button
+            onClick={() => handleDelist()}
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg w-full md:w-1/2"
+          >
+            Delist Pokemon
+          </button>
+          <p className="mb-2 text-black-600 font-semibold">{timeLeft}</p>
+        </>
+      );
+    }
+
+    // If bids are present, prevent delisting
+    if (isAuction && !ended && hasBids) {
+      return (
+        <>
+          <p className="text-sm text-red-600 font-semibold">
+            Cannot delist — a bid has already been placed.{" "}
+          </p>
+          <p className="text-sm font-semibold">{timeLeft}</p>
+        </>
+      );
+    }
+
+    // During reveal window owner can see time
+    if (isAuction && ended && !revealWindowClosed) {
       return (
         <p className="mb-2 text-black-600 font-semibold">
           Can finalize when reveal window ends. {timeLeft}
@@ -272,7 +312,7 @@ export default function ListingActions({
     }
 
     // Also allow owner to finalize after reveal window has closed
-    if (isAuction && revealWindowClosed) {
+    if (isAuction && ended && revealWindowClosed) {
       return (
         <div className="space-y-4 w-full md:w-2/3 mx-auto">
           {/* Info Message */}
