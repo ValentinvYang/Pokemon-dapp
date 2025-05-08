@@ -179,6 +179,30 @@ Now open http://localhost:5173/ in your browser to use the app.
 
 ---
 
+## 🛠️ Initial Setup After Cloning
+
+If you've cloned this GitHub repository, follow these steps before running the app:
+
+1. **Install dependencies (root, frontend, backend):**
+
+```bash
+npm install
+cd frontend && npm install
+cd ../backend && npm install
+```
+
+2. **Check Node.js version compatibility:**
+
+Ensure you're using Node.js v22 and npm v10 or higher for proper compatibility
+
+3. **Start the app (use full local setup):**
+
+```bash
+npm run dev
+```
+
+---
+
 ## 🧪 Smart Contract Testing
 
 To run the smart contract tests, follow these steps:
@@ -230,6 +254,7 @@ This project is submitted as part of a course assignment and is not intended for
 
 ## 🙏 Acknowledgements
 
+- Parts of this project were improved, scaffolded, and debugged using [ChatGPT](https://openai.com/chatgpt)
 - Pokemon sprites from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon)
 - Solidity libraries by [OpenZeppelin](https://openzeppelin.com)
 - IPFS powered by [Helia](https://helia.io)
