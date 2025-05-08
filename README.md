@@ -25,6 +25,45 @@ A fully local DApp that lets users trade Pokemon using smart contracts, IPFS sto
 - Tailwind CSS v3
 - Helia v5
 
+---
+
+## 📦 Installing Dependencies
+
+### ✅ If You Unzipped the Project:
+
+After extracting the ZIP file, run the following from the root of the project to install required dependencies:
+
+```bash
+npm install
+cd frontend && npm install
+```
+
+---
+
+### 🛠️ If You Cloned the GitHub Repository:
+
+1. **Install dependencies (root, frontend, backend):**
+
+```bash
+npm install
+cd frontend && npm install
+cd ../backend && npm install
+```
+
+2. **Check Node.js version compatibility:**
+
+Ensure you're using Node.js v22 and npm v10 or higher for proper compatibility
+
+3. **Start the app (use full local setup):**
+
+```bash
+npm run dev
+```
+
+This launches the Hardhat node, Helia dev server, deploys contracts, uploads Pokemon metadata, and starts the frontend.
+
+---
+
 ## 📁 Project Structure
 
 - [`backend/`](backend/) – Smart contracts and blockchain config
@@ -176,30 +215,6 @@ npm run dev
 ```
 
 Now open http://localhost:5173/ in your browser to use the app.
-
----
-
-## 🛠️ Initial Setup After Cloning
-
-If you've cloned this GitHub repository, follow these steps before running the app:
-
-1. **Install dependencies (root, frontend, backend):**
-
-```bash
-npm install
-cd frontend && npm install
-cd ../backend && npm install
-```
-
-2. **Check Node.js version compatibility:**
-
-Ensure you're using Node.js v22 and npm v10 or higher for proper compatibility
-
-3. **Start the app (use full local setup):**
-
-```bash
-npm run dev
-```
 
 ---
 
