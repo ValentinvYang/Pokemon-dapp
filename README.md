@@ -249,6 +249,92 @@ npx hardhat test
 
 ---
 
+## ✨ Features
+
+### 🎮 Trade Pokemon
+
+Users can list their Pokemon either for a fixed price or as an auction.
+
+### 💰 Fixed Price Listings
+
+Sellers specify an ETH price between the limits specified in the Trading Contract.
+
+Buyers purchase directly by sending the specified ETH.
+
+Immediate ownership transfer upon purchase.
+
+### 🕵️‍♂️ Commit-Reveal Auctions
+
+Sellers specify a minimun ETH bid, the auction duration and the reveal window duration between the limits specified in the Trading Contract.
+
+Users commit hidden bids (via hash of bid + salt) during the bidding phase.
+
+After auction ends, there's a reveal window before finalization.
+
+Prevents front-running and ensures fair auctions.
+
+If multiple users bid the same amount, earlier commit wins.
+
+## ⏳ Delayed Auction Finalization
+
+Auctions include a reveal window (finalizeDelay - min 120s) after bidding ends.
+
+Ensures bidders have a fair reveal window before finalization.
+
+Prevents sellers or external parties from prematurely ending auctions.
+
+### 🛑 Emergency Pausing
+
+Trading Contract includes pausable functionality.
+
+Prevents trades in case of bugs or exploits.
+
+### 🧾 Pull Payments & Refunds
+
+Auction losers can withdraw their refunds manually via withdrawRefund().
+
+Uses a pull-based refund model to avoid reentrancy.
+
+### 🔐 Role-Safe Design
+
+The contract uses modifiers to guard sensitive actions.
+
+Examples include:
+
+- onlyOwner — restricts critical functions like pause(), mintPokemon().
+
+- onlyPokemonOwner — ensures only the current NFT owner can list their Pokemon.
+
+- onlyListingSeller — prevents unauthorized delisting.
+
+These restrictions are enforced on-chain and prevent unauthorized actions by users or bots.
+
+📄 For a complete list of access rules and protections, see [`PokemonContract.sol`](backend/contracts/PokemonContract.sol) and[`TradingContract.sol`](backend/contracts/TradingContract.sol)
+
+### 🗃️ On-Chain + IPFS Storage
+
+Pokemon metadata is stored on Helia (IPFS).
+
+Each token stores a CID that maps to ipfs:// links.
+
+### Automatic Limit Syncing
+
+The frontend automatically reads contract-defined limits (like min/max price, finalize delay) when running:
+
+```bash
+npm run dev
+```
+
+or from the backend folder, after deploying the contracts:
+
+```bash
+node hardhat run scripts/exportLimits.js --network localhost
+```
+
+This ensures UI forms stay consistent with the backend rules — no manual updates needed.
+
+---
+
 ## 📸 Pokemon Images
 
 This project uses static Pokemon images (001–386) from [HybridShivam/Pokemon](https://github.com/HybridShivam/Pokemon).
